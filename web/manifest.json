@@ -1,0 +1,11 @@
+{
+  "name": "ICU Patient Monitor",
+  "short_name": "PatientMonitor",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0A0E17",
+  "theme_color": "#0F172A",
+  "description": "Real-time ICU Patient Telemetry Monitor",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false
+}

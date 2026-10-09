@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="ICU Patient Monitoring Dashboard">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Patient Monitor">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>ICU Patient Monitor</title>
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Dynamic Runtime Configuration (No hardcoded API keys) -->
+  <script>
+    // Configuration is injected dynamically via environment variables or runtime storage
+    window.__APP_CONFIG__ = {
+      GEMINI_API_KEY: (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY) ||
+                      window.localStorage.getItem('GEMINI_API_KEY') || '',
+      FIREBASE_API_KEY: (typeof process !== 'undefined' && process.env?.FIREBASE_API_KEY) ||
+                        window.localStorage.getItem('FIREBASE_API_KEY') || ''
+    };
+  </script>
+</head>
+<body style="background-color: #0A0E17; margin: 0; padding: 0;">
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

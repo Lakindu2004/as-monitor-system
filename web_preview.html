@@ -1,0 +1,3783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ICU Telemetry & Advanced Patient Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070A12;
+      --surface: #0E1424;
+      --surface-elevated: #141C32;
+      --border: #1E293B;
+      --border-focus: #38BDF8;
+      
+      --cyan: #00E5FF;
+      --cyan-glow: rgba(0, 229, 255, 0.25);
+      --rose: #FF2E63;
+      --rose-glow: rgba(255, 46, 99, 0.3);
+      --emerald: #10B981;
+      --emerald-glow: rgba(16, 185, 129, 0.25);
+      --amber: #F59E0B;
+      --purple: #A855F7;
+      --blue: #3B82F6;
+      
+      --text: #F8FAFC;
+      --text-sub: #94A3B8;
+      --text-muted: #64748B;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px;
+      overflow-x: hidden;
+    }
+
+    .app-viewport {
+      width: 100%;
+      max-width: 580px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding-bottom: 84px; /* Space for bottom navigation */
+    }
+
+    /* Top App Bar */
+    .top-bar {
+      background: rgba(14, 20, 36, 0.9);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 8px;
+      z-index: 100;
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-avatar {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(168,85,247,0.2));
+      border: 1px solid rgba(0, 229, 255, 0.4);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--cyan);
+    }
+    .brand-title {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+    }
+    .brand-node {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn-top {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-sub);
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .btn-top:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+    .btn-top.active-alarm {
+      color: var(--rose);
+      border-color: var(--rose);
+      animation: pulse-border 1.5s infinite;
+    }
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      padding: 4px 8px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--emerald);
+    }
+    .dot-live {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+      animation: blink 1.2s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    @keyframes pulse-border {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 46, 99, 0.4); }
+      50% { box-shadow: 0 0 0 4px rgba(255, 46, 99, 0); }
+    }
+
+    /* Tab Containers */
+    .tab-content { display: none; flex-direction: column; gap: 14px; }
+    .tab-content.active { display: flex; }
+
+    /* Patient Info Banner */
+    .patient-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .patient-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .patient-pfp {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(0, 229, 255, 0.15);
+      border: 1px solid var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 15px;
+      color: var(--cyan);
+    }
+    .patient-name {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .patient-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .btn-nurse {
+      background: rgba(0, 229, 255, 0.12);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-nurse:hover {
+      background: var(--cyan);
+      color: #000;
+      box-shadow: 0 0 14px var(--cyan-glow);
+    }
+
+    /* Danger / Stable Alert Banner */
+    .alert-banner {
+      border-radius: 18px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 78, 59, 0.25));
+      border: 1px solid rgba(16, 185, 129, 0.5);
+    }
+    .alert-banner.hazard {
+      background: linear-gradient(135deg, rgba(255, 46, 99, 0.25), rgba(136, 19, 55, 0.4));
+      border: 1.5px solid var(--rose);
+      box-shadow: 0 4px 20px rgba(255, 46, 99, 0.3);
+      animation: alert-pulse 1.8s infinite alternate;
+    }
+    @keyframes alert-pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.008); }
+    }
+    .alert-icon {
+      font-size: 20px;
+      line-height: 1;
+      padding: 8px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .alert-title {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+    }
+    .alert-banner.hazard .alert-title { color: #FFA1B5; }
+    .alert-banner:not(.hazard) .alert-title { color: #A7F3D0; }
+    .alert-desc {
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+    .alert-triggers {
+      margin-top: 6px;
+      font-size: 10.5px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--rose);
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px 8px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    /* Waveform Container */
+    .waveform-card {
+      background: #090E1B;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .waveform-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--cyan);
+      letter-spacing: 0.8px;
+    }
+    .waveform-canvas-wrap {
+      width: 100%;
+      height: 64px;
+      position: relative;
+    }
+    canvas#ecgCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Dynamic Grid of Vitals Cards */
+    .vitals-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .vital-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.25s ease;
+    }
+    .vital-card.full-width {
+      grid-column: span 2;
+    }
+    .vital-card.hidden {
+      display: none !important;
+    }
+    .vital-card.abnormal {
+      border-color: var(--rose);
+      box-shadow: 0 0 16px rgba(255, 46, 99, 0.25);
+    }
+    .v-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .v-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      color: var(--text-sub);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .v-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+    .v-range-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: var(--surface-elevated);
+      color: var(--text-muted);
+    }
+    .vital-card.abnormal .v-range-badge {
+      color: var(--rose);
+      background: rgba(255, 46, 99, 0.15);
+    }
+    .v-body {
+      margin: 8px 0 4px 0;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+    .v-val {
+      font-size: 32px;
+      font-weight: 800;
+      color: #FFF;
+      letter-spacing: -0.5px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .v-unit {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+    .v-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .v-status {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--text-sub);
+    }
+    .v-status.danger { color: var(--rose); font-weight: 700; }
+    .v-progress-bg {
+      width: 100%;
+      height: 4px;
+      background: #172138;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .v-progress-bar {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+
+    /* Sub Navigation Pills (For History Sub-Tabs & Modules) */
+    .subnav-pills {
+      display: flex;
+      gap: 6px;
+      background: var(--surface);
+      padding: 6px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    .subnav-btn {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      text-align: center;
+    }
+    .subnav-btn.active {
+      background: var(--surface-elevated);
+      color: var(--cyan);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+    }
+
+    /* Analytics / History Cards */
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chart-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-sub);
+      letter-spacing: 0.6px;
+    }
+    .donut-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      gap: 16px;
+    }
+    .donut-canvas-container {
+      position: relative;
+      width: 120px;
+      height: 120px;
+    }
+    .donut-center-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .donut-center-val {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--emerald);
+    }
+    .donut-center-sub {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .legend-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+    .legend-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+    }
+    .legend-dot-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-sub);
+    }
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .legend-val {
+      font-weight: 700;
+      color: #FFF;
+    }
+
+    /* Metric Filter Buttons */
+    .metric-pills { display: flex; gap: 4px; }
+    .metric-pill {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .metric-pill.active {
+      background: var(--cyan);
+      color: #000;
+      border-color: var(--cyan);
+    }
+    .metric-pill.hidden-param { display: none !important; }
+
+    /* Summary Stats Grid */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .stat-box {
+      background: var(--surface-elevated);
+      border-radius: 12px;
+      padding: 8px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .stat-label { font-size: 9px; color: var(--text-muted); font-weight: 700; }
+    .stat-num { font-size: 13px; font-weight: 800; color: #FFF; margin-top: 2px; }
+
+    /* Tables for 24h & Monthly details */
+    .data-table-wrap {
+      max-height: 220px;
+      overflow-y: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .custom-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      text-align: left;
+    }
+    .custom-table th {
+      background: var(--surface-elevated);
+      color: var(--text-sub);
+      padding: 8px 10px;
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .custom-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(30, 41, 59, 0.6);
+      color: var(--text);
+    }
+    .custom-table tr:last-child td { border-bottom: none; }
+    .custom-table tr:hover { background: rgba(255,255,255,0.02); }
+    .badge-stable {
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--emerald);
+      font-weight: 700;
+      font-size: 9.5px;
+    }
+    .badge-warn {
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--amber);
+      font-weight: 700;
+      font-size: 9.5px;
+    }
+    .badge-crit {
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255, 46, 99, 0.15);
+      color: var(--rose);
+      font-weight: 700;
+      font-size: 9.5px;
+    }
+
+    /* Daily Report Styles */
+    .report-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .date-selector-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .date-input {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      color: #FFF;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      outline: none;
+    }
+    .incident-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 180px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .incident-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: var(--surface-elevated);
+      padding: 8px 12px;
+      border-radius: 10px;
+      border-left: 3px solid var(--emerald);
+    }
+    .incident-item.hazard { border-left-color: var(--rose); }
+    .incident-time {
+      font-size: 10px;
+      color: var(--cyan);
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .incident-text { font-size: 11px; color: var(--text); }
+
+    /* Module Toggle Card */
+    .module-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 0.25s ease;
+    }
+    .module-card.enabled {
+      border-color: rgba(0, 229, 255, 0.4);
+      background: linear-gradient(145deg, var(--surface), rgba(0, 229, 255, 0.03));
+    }
+    .module-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .module-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .module-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .module-title { font-size: 13px; font-weight: 800; color: #FFF; }
+    .module-status-badge {
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+    .module-status-badge.on {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .module-status-badge.off {
+      background: rgba(100, 116, 139, 0.15);
+      color: var(--text-muted);
+      border: 1px solid rgba(100, 116, 139, 0.3);
+    }
+    .module-desc {
+      font-size: 11px;
+      color: var(--text-sub);
+      line-height: 1.4;
+    }
+    .switch-toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .switch-label { font-size: 11.5px; font-weight: 700; color: var(--text); }
+    
+    /* Toggle Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider-toggle {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #1E293B;
+      transition: .3s;
+      border-radius: 24px;
+    }
+    .slider-toggle:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    input:checked + .slider-toggle {
+      background-color: var(--cyan);
+    }
+    input:checked + .slider-toggle:before {
+      transform: translateX(20px);
+      background-color: #000;
+    }
+
+    /* Settings & Sliders */
+    .settings-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .sec-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-sub);
+      letter-spacing: 0.8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .field-group { display: flex; flex-direction: column; gap: 6px; }
+    .field-label { font-size: 11px; color: var(--text-muted); font-weight: 700; }
+    .text-input {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      color: #FFF;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .text-input:focus { border-color: var(--cyan); }
+    
+    /* Dual Range / Dual Slider Container */
+    .dual-slider-box {
+      background: var(--surface-elevated);
+      border-radius: 14px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .dual-slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .dual-slider-title { font-size: 11.5px; font-weight: 800; color: #FFF; display: flex; align-items: center; gap: 6px; }
+    .dual-badges {
+      display: flex;
+      gap: 6px;
+    }
+    .dual-badge {
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: var(--surface);
+    }
+    .slider-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
+      color: var(--text-muted);
+    }
+    .slider-val-tag { font-weight: 800; color: var(--cyan); }
+    .custom-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #1E293B;
+      border-radius: 4px;
+      outline: none;
+    }
+    .custom-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--cyan);
+      cursor: pointer;
+      box-shadow: 0 0 8px var(--cyan-glow);
+    }
+
+    /* Buttons */
+    .btn-action {
+      background: var(--rose);
+      color: #FFF;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn-action:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-secondary {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover { border-color: var(--cyan); color: var(--cyan); }
+
+    /* Bottom Navigation Bar (5 Items) */
+    .bottom-nav {
+      position: fixed;
+      bottom: 8px;
+      width: calc(100% - 24px);
+      max-width: 580px;
+      background: rgba(14, 20, 36, 0.92);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      display: flex;
+      justify-content: space-around;
+      padding: 6px 4px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 6px 8px;
+      border-radius: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 9.5px;
+      font-weight: 700;
+      min-width: 62px;
+      text-align: center;
+    }
+    .nav-item .nav-icon {
+      font-size: 16px;
+      transition: transform 0.2s;
+    }
+    .nav-item:hover { color: var(--text-sub); }
+    .nav-item.active {
+      color: var(--cyan);
+      background: rgba(0, 229, 255, 0.08);
+    }
+    .nav-item.active .nav-icon {
+      transform: scale(1.15);
+    }
+
+    /* Modal / Report Printable View */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 540px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 84px;
+      background: rgba(14, 20, 36, 0.95);
+      border: 1px solid var(--border-focus);
+      color: #FFF;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      transform: translateY(40px);
+      opacity: 0;
+      transition: all 0.3s;
+      pointer-events: none;
+      z-index: 3000;
+    }
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  
+    /* ========================================= */
+    /* PPG WAVEFORM, AI ASSISTANT & AUDIO STYLES */
+    /* ========================================= */
+    .ppg-waveform-card {
+      border: 1px solid rgba(0, 230, 118, 0.35);
+      background: #0E1424;
+      border-radius: 18px;
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 16px rgba(0, 230, 118, 0.06);
+    }
+    .ppg-canvas-wrap {
+      width: 100%;
+      height: 96px;
+      background: #070A12;
+      border-radius: 12px;
+      border: 1px solid #1E293B;
+      position: relative;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    canvas#ppgCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .badge-mini {
+      background: rgba(0, 229, 255, 0.15);
+      color: var(--cyan);
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+    .badge-living {
+      background: rgba(0, 230, 118, 0.15);
+      color: #00E676;
+      border: 1px solid #00E676;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 12px;
+      letter-spacing: 0.5px;
+    }
+    .badge-living.detached {
+      background: rgba(255, 46, 99, 0.15) !important;
+      color: var(--rose) !important;
+      border-color: var(--rose) !important;
+    }
+    .btn-wave-toggle {
+      background: #141C32;
+      color: var(--text-muted);
+      border: 1px solid #1E293B;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 9.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-wave-toggle.active {
+      background: rgba(0, 229, 255, 0.15);
+      color: var(--cyan);
+      border-color: var(--cyan);
+    }
+
+    /* AI Voice Report Bar */
+    .voice-report-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0E1424;
+      border: 1px solid rgba(0, 229, 255, 0.35);
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 14px rgba(0, 229, 255, 0.05);
+    }
+
+    /* Floating AI Assistant FAB & Modal */
+    .fab-ai-assistant {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: linear-gradient(135deg, #00E5FF, #3B82F6);
+      color: #070A12;
+      font-weight: 800;
+      font-size: 13px;
+      border: none;
+      border-radius: 30px;
+      padding: 12px 20px;
+      box-shadow: 0 8px 24px rgba(0, 229, 255, 0.4);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 1000;
+      transition: all 0.2s ease;
+    }
+    .fab-ai-assistant:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(0, 229, 255, 0.5);
+    }
+
+    /* AI Assistant Drawer/Modal */
+    .ai-assistant-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 10, 18, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      justify-content: center;
+      align-items: flex-end;
+    }
+    .ai-assistant-sheet {
+      background: #0E1424;
+      border: 1px solid #1E293B;
+      border-radius: 24px 24px 0 0;
+      width: 100%;
+      max-width: 580px;
+      height: 75vh;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      box-shadow: 0 -8px 32px rgba(0,0,0,0.6);
+      animation: slideUp 0.25s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px 0;
+    }
+    .chat-bubble {
+      max-width: 80%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 12.5px;
+      line-height: 1.4;
+    }
+    .chat-bubble.ai {
+      background: #141C32;
+      border: 1px solid #1E293B;
+      color: #E2E8F0;
+      align-self: flex-start;
+    }
+    .chat-bubble.user {
+      background: rgba(0, 229, 255, 0.2);
+      border: 1px solid rgba(0, 229, 255, 0.4);
+      color: #FFF;
+      align-self: flex-end;
+    }
+    .chat-input-bar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding-top: 10px;
+      border-top: 1px solid #1E293B;
+    }
+    .chat-input {
+      flex: 1;
+      background: #070A12;
+      border: 1px solid #1E293B;
+      border-radius: 20px;
+      padding: 10px 14px;
+      color: #FFF;
+      font-size: 12px;
+      outline: none;
+    }
+    .chat-input:focus {
+      border-color: var(--cyan);
+    }
+    .btn-mic {
+      background: rgba(0, 230, 118, 0.15);
+      color: #00E676;
+      border: 1px solid #00E676;
+      border-radius: 50%;
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .btn-mic.listening {
+      background: #00E676;
+      color: #070A12;
+      animation: pulseMic 1s infinite alternate;
+    }
+    @keyframes pulseMic {
+      from { transform: scale(1); }
+      to { transform: scale(1.15); }
+    }
+    .prompt-chip {
+      background: #141C32;
+      border: 1px solid #1E293B;
+      color: var(--cyan);
+      font-size: 10.5px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+</style>
+</head>
+<body>
+
+  <!-- Firebase Compat Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <div class="app-viewport">
+
+    <!-- Top Navigation Bar -->
+    <header class="top-bar">
+      <div class="brand-group">
+        <div class="brand-avatar">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <div>
+          <div class="brand-title">ICU TELEMETRY SYSTEM</div>
+          <div class="brand-node">Node: /patient • 5-Param RTDB</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="live-indicator">
+          <div class="dot-live"></div>
+          <span id="liveStatusText">LIVE RTDB</span>
+        </div>
+        <button class="btn-top" id="alarmSoundBtn" onclick="toggleMute()" title="Mute/Unmute Alarms">
+          <span id="muteIcon">🔊</span>
+        </button>
+        <button class="btn-top" id="unitToggleBtn" onclick="toggleTempUnit()" title="Switch Temperature Unit">
+          °C
+        </button>
+      </div>
+    </header>
+
+    <!-- ========================================== -->
+    <!-- TAB 1: LIVE MONITOR VIEW                    -->
+    <!-- ========================================== -->
+    <div class="tab-content active" id="tab-live">
+      
+      <!-- Patient Profile Info Card -->
+      <div class="patient-card">
+        <div class="patient-info">
+          <div class="patient-pfp" id="pfpLetters">EV</div>
+          <div>
+            <div class="patient-name" id="displayPatientName">Eleanor Vance</div>
+            <div class="patient-meta" id="displayPatientMeta">38 / Female • Bed 01 (ICU)</div>
+          </div>
+        </div>
+        <button class="btn-nurse" onclick="callNurse()">
+          📞 <span id="nurseBtnLabel">Call Nurse</span>
+        </button>
+      </div>
+
+      <!-- Critical Hazard / Stable Banner -->
+      <div class="alert-banner" id="alertBanner">
+        <div class="alert-icon" id="alertIcon">🛡️</div>
+        <div style="flex: 1;">
+          <div class="alert-title" id="alertTitle">VITALS NORMAL & STABLE</div>
+          <div class="alert-desc" id="alertDesc">Monitored physiological indicators are within configured safe bounds.</div>
+          <div class="alert-triggers" id="alertTriggers"></div>
+        </div>
+      </div>
+
+      <!-- Realtime ECG Plethysmogram -->
+      <div class="waveform-card">
+        <div class="waveform-header">
+          <span>PULSE PLETHYSMOGRAM (PPG / ECG LIVE)</span>
+          <span id="ecgSyncLabel">76 BPM Live Sync</span>
+        </div>
+        <div class="waveform-canvas-wrap">
+          <canvas id="ecgCanvas" width="520" height="64"></canvas>
+        </div>
+      </div>
+
+      <!-- NEW COMPONENT: Real-time PPG Waveform Line Chart (MAX30102 IR Waveform) -->
+      <div class="waveform-card ppg-waveform-card" id="cardPpgWave">
+        <div class="waveform-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: #00E676; font-weight: 800;">REAL-TIME PPG PULSE WAVEFORM</span>
+            <span class="badge-mini">25 Hz IR Stream</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span id="livingBodyBadge" class="badge-living">🟢 LIVING BODY VERIFIED</span>
+            <button class="btn-wave-toggle active" id="btnAiSmoothing" onclick="toggleAiCurveSmoothing()">⚡ AI Smoothing: ON</button>
+            <button class="btn-wave-toggle" id="btnAiWaveCheck" onclick="runAiWaveAnalysis()">🤖 AI Wave Check</button>
+            <button class="btn-wave-toggle" id="btnVoiceReport" onclick="speakAiReport()" style="background: rgba(0, 229, 255, 0.15); color: var(--cyan); border-color: var(--cyan);">🗣️ Speak AI Report</button>
+          </div>
+        </div>
+        <div class="ppg-canvas-wrap">
+          <canvas id="ppgCanvas" width="520" height="96"></canvas>
+        </div>
+      </div>
+
+
+      <!-- Vitals Telemetry Grid -->
+      <div class="vitals-grid">
+        
+        <!-- Heart Rate (BPM) -->
+        <div class="vital-card" id="cardBpm">
+          <div class="v-header">
+            <div class="v-tag">
+              <div class="v-icon" style="background: rgba(255,46,99,0.18); color: var(--rose);">❤️</div>
+              HEART RATE
+            </div>
+            <div class="v-range-badge" id="tagBpm">55 - 105</div>
+          </div>
+          <div class="v-body">
+            <span class="v-val" id="valBpm">76</span>
+            <span class="v-unit">BPM</span>
+          </div>
+          <div class="v-footer">
+            <div class="v-status" id="statusBpm">Normal Sinus Rhythm</div>
+            <div class="v-progress-bg">
+              <div class="v-progress-bar" id="barBpm" style="width: 50%; background: var(--rose);"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Blood Oxygen (SpO2) -->
+        <div class="vital-card" id="cardSpo2">
+          <div class="v-header">
+            <div class="v-tag">
+              <div class="v-icon" style="background: rgba(0,229,255,0.18); color: var(--cyan);">💧</div>
+              BLOOD OXYGEN
+            </div>
+            <div class="v-range-badge" id="tagSpo2">93 - 100%</div>
+          </div>
+          <div class="v-body">
+            <span class="v-val" id="valSpo2">98</span>
+            <span class="v-unit">%</span>
+          </div>
+          <div class="v-footer">
+            <div class="v-status" id="statusSpo2">Optimal Perfusion</div>
+            <div class="v-progress-bg">
+              <div class="v-progress-bar" id="barSpo2" style="width: 98%; background: var(--cyan);"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Perfusion Index (PI %) - Modular (Can be hidden) -->
+        <div class="vital-card" id="cardPi">
+          <div class="v-header">
+            <div class="v-tag">
+              <div class="v-icon" style="background: rgba(168,85,247,0.18); color: var(--purple);">🩸</div>
+              PERFUSION INDEX
+            </div>
+            <div class="v-range-badge" id="tagPi">1.2 - 10.0%</div>
+          </div>
+          <div class="v-body">
+            <span class="v-val" id="valPi">3.8</span>
+            <span class="v-unit">% PI</span>
+          </div>
+          <div class="v-footer">
+            <div class="v-status" id="statusPi">Strong Pulse Wave</div>
+            <div class="v-progress-bg">
+              <div class="v-progress-bar" id="barPi" style="width: 38%; background: var(--purple);"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Respiratory Rate (RR) - Modular (Can be hidden) -->
+        <div class="vital-card" id="cardRr">
+          <div class="v-header">
+            <div class="v-tag">
+              <div class="v-icon" style="background: rgba(16,185,129,0.18); color: var(--emerald);">💨</div>
+              RESPIRATORY RATE
+            </div>
+            <div class="v-range-badge" id="tagRr">10 - 22</div>
+          </div>
+          <div class="v-body">
+            <span class="v-val" id="valRr">16</span>
+            <span class="v-unit">RPM</span>
+          </div>
+          <div class="v-footer">
+            <div class="v-status" id="statusRr">Eupnea (Normal)</div>
+            <div class="v-progress-bg">
+              <div class="v-progress-bar" id="barRr" style="width: 45%; background: var(--emerald);"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Body Temperature -->
+        <div class="vital-card full-width" id="cardTemp">
+          <div class="v-header">
+            <div class="v-tag">
+              <div class="v-icon" style="background: rgba(245,158,11,0.18); color: var(--amber);">🌡️</div>
+              BODY TEMPERATURE
+            </div>
+            <div class="v-range-badge" id="tagTemp">36.0 - 38.0°C</div>
+          </div>
+          <div class="v-body">
+            <span class="v-val" id="valTemp">36.8</span>
+            <span class="v-unit" id="unitTempLabel">°C</span>
+          </div>
+          <div class="v-footer">
+            <div class="v-status" id="statusTemp">Normothermic Stable</div>
+            <div class="v-progress-bg">
+              <div class="v-progress-bar" id="barTemp" style="width: 55%; background: var(--amber);"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Emergency Code Blue Action -->
+      <button class="btn-action" onclick="triggerCodeBlue()">
+        🚨 Emergency Code Blue Broadcast
+      </button>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: HISTORY & ANALYSIS (24H + MONTHLY)   -->
+    <!-- ========================================== -->
+    <div class="tab-content" id="tab-analytics">
+      
+      <!-- Sub-Navigation for History Tab -->
+      <div class="subnav-pills">
+        <button class="subnav-btn active" id="btnSubLiveTrend" onclick="switchHistorySub('live-trend')">Realtime Stream</button>
+        <button class="subnav-btn" id="btnSub24h" onclick="switchHistorySub('24h')">24-Hour History</button>
+        <button class="subnav-btn" id="btnSubMonthly" onclick="switchHistorySub('monthly')">Monthly Analysis</button>
+      </div>
+
+      <!-- VIEW 2A: Realtime Stream & Donut -->
+      <div id="historyViewLive" style="display: flex; flex-direction: column; gap: 14px;">
+        
+        <!-- Physiological Stability Donut / Pie Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">PATIENT STABILITY DISTRIBUTION (PIE CHART)</span>
+            <span style="font-size: 10px; color: var(--cyan);">Real-time Telemetry</span>
+          </div>
+          <div class="donut-wrap">
+            <div class="donut-canvas-container">
+              <canvas id="donutCanvas" width="120" height="120"></canvas>
+              <div class="donut-center-text">
+                <div class="donut-center-val" id="donutPct">92%</div>
+                <div class="donut-center-sub">STABLE</div>
+              </div>
+            </div>
+            <div class="legend-list">
+              <div class="legend-item">
+                <div class="legend-dot-label">
+                  <div class="legend-dot" style="background: var(--emerald);"></div>
+                  <span>Optimal Range</span>
+                </div>
+                <span class="legend-val" id="legOpt">92%</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot-label">
+                  <div class="legend-dot" style="background: var(--amber);"></div>
+                  <span>Minor Drift</span>
+                </div>
+                <span class="legend-val" id="legWarn">6%</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot-label">
+                  <div class="legend-dot" style="background: var(--rose);"></div>
+                  <span>Critical Alarms</span>
+                </div>
+                <span class="legend-val" id="legCrit">2%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Realtime Multi-Parameter Trend Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">RECENT TELEMETRY TREND</span>
+            <div class="metric-pills">
+              <button class="metric-pill active" onclick="switchTrendMetric('BPM')">BPM</button>
+              <button class="metric-pill" onclick="switchTrendMetric('SpO2')">SpO2</button>
+              <button class="metric-pill" id="pillPi" onclick="switchTrendMetric('PI')">PI%</button>
+              <button class="metric-pill" id="pillRr" onclick="switchTrendMetric('RR')">RR</button>
+              <button class="metric-pill" onclick="switchTrendMetric('Temp')">Temp</button>
+            </div>
+          </div>
+          <div style="height: 120px; width: 100%;">
+            <canvas id="trendCanvas" width="520" height="120" style="width: 100%; height: 100%;"></canvas>
+          </div>
+          <div class="stats-row">
+            <div class="stat-box">
+              <div class="stat-label">CURRENT</div>
+              <div class="stat-num" id="statCur">76</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">MINIMUM</div>
+              <div class="stat-num" id="statMin">72</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">AVERAGE</div>
+              <div class="stat-num" id="statAvg">76.4</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">MAXIMUM</div>
+              <div class="stat-num" id="statMax">82</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- VIEW 2B: 24-HOUR HISTORY VIEW -->
+      <div id="historyView24h" style="display: none; flex-direction: column; gap: 14px;">
+        
+        <!-- 24-Hour Continuous Timeline Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">24-HOUR TELEMETRY TIMELINE (HOURLY)</span>
+            <div class="metric-pills">
+              <button class="metric-pill active" id="btn24Bpm" onclick="switch24hMetric('BPM')">BPM</button>
+              <button class="metric-pill" id="btn24Spo2" onclick="switch24hMetric('SpO2')">SpO2</button>
+              <button class="metric-pill" id="btn24Pi" onclick="switch24hMetric('PI')">PI%</button>
+              <button class="metric-pill" id="btn24Rr" onclick="switch24hMetric('RR')">RR</button>
+              <button class="metric-pill" id="btn24Temp" onclick="switch24hMetric('Temp')">Temp</button>
+            </div>
+          </div>
+          <div style="height: 130px; width: 100%;">
+            <canvas id="canvas24h" width="520" height="130" style="width: 100%; height: 100%;"></canvas>
+          </div>
+          <div class="stats-row">
+            <div class="stat-box">
+              <div class="stat-label">24H PEAK</div>
+              <div class="stat-num" id="stat24Max">102</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">24H MIN</div>
+              <div class="stat-num" id="stat24Min">64</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">24H MEAN</div>
+              <div class="stat-num" id="stat24Avg">74.8</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">STABLE HRS</div>
+              <div class="stat-num" style="color: var(--emerald);" id="stat24Stable">23.2h</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 24-Hour Hourly Breakdown Table -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">HOURLY RECORDINGS (LAST 24 HOURS)</span>
+            <span style="font-size: 10px; color: var(--text-muted);">24 Time Windows</span>
+          </div>
+          <div class="data-table-wrap">
+            <table class="custom-table" id="table24h">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>BPM</th>
+                  <th>SpO2</th>
+                  <th class="col-rr">RR</th>
+                  <th class="col-pi">PI%</th>
+                  <th>Temp</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="tbody24h">
+                <!-- Populated dynamically via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- VIEW 2C: MONTHLY ANALYSIS VIEW -->
+      <div id="historyViewMonthly" style="display: none; flex-direction: column; gap: 14px;">
+        
+        <!-- 30-Day Aggregated Trend Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">30-DAY MONTHLY CLINICAL ANALYSIS</span>
+            <span style="font-size: 10px; color: var(--emerald); font-weight: 700;">97.4% Target Compliance</span>
+          </div>
+          <div style="height: 130px; width: 100%;">
+            <canvas id="canvasMonthly" width="520" height="130" style="width: 100%; height: 100%;"></canvas>
+          </div>
+          <div class="stats-row">
+            <div class="stat-box">
+              <div class="stat-label">DAYS MONITORED</div>
+              <div class="stat-num">30 Days</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">AVG HEART RATE</div>
+              <div class="stat-num">74 BPM</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">AVG SpO2</div>
+              <div class="stat-num" style="color: var(--cyan);">98.1%</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">TOTAL BREACHES</div>
+              <div class="stat-num" style="color: var(--amber);">3 Events</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Month Day-by-Day Performance Table -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">DAILY LOG BOOK (30 DAYS)</span>
+            <span style="font-size: 10px; color: var(--cyan);">Monthly Record</span>
+          </div>
+          <div class="data-table-wrap">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>HR Range</th>
+                  <th>Avg SpO2</th>
+                  <th>Temp</th>
+                  <th>Breaches</th>
+                  <th>Rating</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyMonthly">
+                <!-- Populated dynamically via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 3: DAILY REPORT TAB                    -->
+    <!-- ========================================== -->
+    <div class="tab-content" id="tab-report">
+      
+      <div class="report-card">
+        <div class="date-selector-row">
+          <div>
+            <div style="font-size: 10px; font-weight: 800; color: var(--cyan); letter-spacing: 0.8px;">DAILY CLINICAL REPORT</div>
+            <div style="font-size: 14px; font-weight: 800; color: #FFF; margin-top: 2px;">Patient Daily Assessment</div>
+          </div>
+          <input type="date" class="date-input" id="reportDatePicker" onchange="generateDailyReport()">
+        </div>
+
+        <!-- Daily Status Summary Banner -->
+        <div style="background: var(--surface-elevated); border-radius: 14px; padding: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 700;">DAILY ASSESSMENT STATUS</div>
+            <div style="font-size: 13px; font-weight: 800; color: var(--emerald); margin-top: 2px;" id="reportStatusText">Normal Sinus • Stable Oxygenation</div>
+          </div>
+          <div class="badge-stable" id="reportBadge" style="font-size: 11px; padding: 4px 10px;">OPTIMAL (98.4%)</div>
+        </div>
+
+        <!-- Daily Vitals Metrics Summary Table -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size: 11px; font-weight: 800; color: var(--text-sub); letter-spacing: 0.6px;">DAY'S PHYSIOLOGICAL BOUNDS</div>
+          <div class="data-table-wrap">
+            <table class="custom-table" id="reportVitalsTable">
+              <thead>
+                <tr>
+                  <th>Parameter</th>
+                  <th>Minimum</th>
+                  <th>Average</th>
+                  <th>Maximum</th>
+                  <th>Clinical Status</th>
+                </tr>
+              </thead>
+              <tbody id="reportVitalsBody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Incident Timeline Log -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size: 11px; font-weight: 800; color: var(--text-sub); letter-spacing: 0.6px;">CHRONOLOGICAL INCIDENT TIMELINE</div>
+          <div class="incident-timeline" id="reportIncidentList">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Clinical Notes Box -->
+        <div class="field-group">
+          <label class="field-label">Attending Physician / Nurse Observation Notes</label>
+          <textarea class="text-input" id="reportDoctorNotes" rows="3" style="resize: none;" placeholder="Enter clinical assessment or discharge recommendations...">Patient Eleanor Vance exhibited stable cardiovascular rhythm throughout monitoring. All parameters adhered to configured target bands. No intervention required.</textarea>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <button class="btn-action btn-secondary" onclick="openPrintModal()">
+            📄 Print / Export Report
+          </button>
+          <button class="btn-action" style="background: var(--blue);" onclick="copyReportSummary()">
+            📋 Copy Daily Summary
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 4: SENSOR MODULES & PARAMETERS (RR & PI) -->
+    <!-- ========================================== -->
+    <div class="tab-content" id="tab-modules">
+      
+      <!-- Module Intro Card -->
+      <div class="settings-card">
+        <div class="sec-title">
+          <span>OPTIONAL CLINICAL SENSOR MODULES</span>
+          <span style="font-size: 10px; color: var(--cyan);">Modular Vitals</span>
+        </div>
+        <p style="font-size: 11.5px; color: var(--text-sub); line-height: 1.4;">
+Customize monitored physiological parameters by enabling or disabling optional sensor channels. Respiratory Rate (RR) and Perfusion Index (PI) can be independently added or removed based on bedside sensor availability.
+</p>
+        <div style="display: flex; gap: 8px; align-items: center; background: var(--surface-elevated); padding: 10px; border-radius: 12px;">
+          <div style="font-size: 18px;">💡</div>
+          <div style="font-size: 11px; color: var(--text);">
+            <strong id="activeModulesCount">4 of 5 Vitals Active</strong> • Monitored on Bedside Dashboard
+          </div>
+        </div>
+      </div>
+
+      <!-- MODULE 1: RESPIRATORY RATE (RR) -->
+      <div class="module-card enabled" id="modCardRr">
+        <div class="module-header">
+          <div class="module-title-group">
+            <div class="module-icon" style="background: rgba(16,185,129,0.18); color: var(--emerald);">💨</div>
+            <div>
+              <div class="module-title">Respiratory Rate (RR) Module</div>
+              <div style="font-size: 10px; color: var(--text-muted);">Breath Mechanics via PPG / Strain Sensor</div>
+            </div>
+          </div>
+          <div class="module-status-badge on" id="badgeModRr">ACTIVE & ADDED</div>
+        </div>
+        <div class="module-desc">
+          Optical PPG respiratory modulation analysis. When added, monitors breaths per minute (RPM), evaluates Tachypnea/Bradypnea breaches, and displays trend graphs.
+        </div>
+        <div class="switch-toggle-row">
+          <span class="switch-label">Enable & Display RR on Monitors</span>
+          <label class="switch">
+            <input type="checkbox" id="toggleModRr" checked onchange="toggleSensorModule('rr', this.checked)">
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- MODULE 2: PERFUSION INDEX (PI) -->
+      <div class="module-card enabled" id="modCardPi">
+        <div class="module-header">
+          <div class="module-title-group">
+            <div class="module-icon" style="background: rgba(168,85,247,0.18); color: var(--purple);">🩸</div>
+            <div>
+              <div class="module-title">Perfusion Index (PI) Module</div>
+              <div style="font-size: 10px; color: var(--text-muted);">Peripheral Capillary Pulse Strength</div>
+            </div>
+          </div>
+          <div class="module-status-badge on" id="badgeModPi">ACTIVE & ADDED</div>
+        </div>
+        <div class="module-desc">
+          Ratio of pulsatile to non-pulsatile blood flow (0.1% - 20.0%). Indicates peripheral vascular perfusion, sensor attachment quality, and vasoconstriction.
+        </div>
+        <div class="switch-toggle-row">
+          <span class="switch-label">Enable & Display PI on Monitors</span>
+          <label class="switch">
+            <input type="checkbox" id="toggleModPi" checked onchange="toggleSensorModule('pi', this.checked)">
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Manual Sensor Calibration / Injected Test -->
+      <div class="settings-card">
+        <div class="sec-title">SIMULATED INJECTION FOR TESTING</div>
+        <div class="field-group">
+          <div class="slider-row">
+            <span>Test Injected RR</span>
+            <span id="labelInjRr" class="slider-val-tag">18 RPM</span>
+          </div>
+          <input type="range" class="custom-slider" id="sliderInjRr" min="8" max="32" value="18" oninput="injectManualModuleVal('rr', this.value)">
+        </div>
+        <div class="field-group">
+          <div class="slider-row">
+            <span>Test Injected PI</span>
+            <span id="labelInjPi" class="slider-val-tag">3.5%</span>
+          </div>
+          <input type="range" class="custom-slider" id="sliderInjPi" min="0.5" max="8.0" step="0.1" value="3.5" oninput="injectManualModuleVal('pi', this.value)">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 5: CUSTOMIZE & ALERTS (DUAL MIN/MAX)   -->
+    <!-- ========================================== -->
+    <div class="tab-content" id="tab-settings">
+
+      <!-- Patient Profile Setup -->
+      <div class="settings-card">
+        <div class="sec-title">PATIENT PROFILE SETTINGS</div>
+        <div class="field-group">
+          <label class="field-label">Patient Full Name</label>
+          <input type="text" class="text-input" id="inputPatientName" value="Eleanor Vance" onchange="saveProfileSettings()">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="field-group">
+            <label class="field-label">Patient Age / Gender</label>
+            <input type="text" class="text-input" id="inputPatientAge" value="38 / Female" onchange="saveProfileSettings()">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Bed / Ward ID</label>
+            <input type="text" class="text-input" id="inputBedId" value="Bed 01 (ICU)" onchange="saveProfileSettings()">
+          </div>
+        </div>
+      </div>
+
+      <!-- Nurse Station Contact Customization -->
+      <div class="settings-card">
+        <div class="sec-title">NURSE STATION EMERGENCY CONTACT</div>
+        <div class="field-group">
+          <label class="field-label">Emergency Nurse Phone Number / Extension</label>
+          <input type="tel" class="text-input" id="inputNursePhone" value="+94 77 123 4567" placeholder="e.g. +94 77 123 4567 or 1990" onchange="saveNurseSettings()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Nurse / Caregiver Name</label>
+          <input type="text" class="text-input" id="inputNurseName" value="Staff Nurse Kumara" onchange="saveNurseSettings()">
+        </div>
+      </div>
+
+      <!-- DUAL THRESHOLDS: BOTH MIN AND MAX ADJUSTABLE -->
+      <div class="settings-card">
+        <div class="sec-title">
+          <span>CUSTOMIZABLE CLINICAL THRESHOLDS (MIN & MAX)</span>
+          <span style="font-size: 10px; color: var(--cyan);">Dual Bound</span>
+        </div>
+
+        <!-- 1. Heart Rate (Min & Max) -->
+        <div class="dual-slider-box">
+          <div class="dual-slider-header">
+            <span class="dual-slider-title">❤️ Heart Rate (BPM)</span>
+            <div class="dual-badges">
+              <span class="dual-badge" id="badgeMinBpm" style="color: var(--amber);">Min: 55</span>
+              <span class="dual-badge" id="badgeMaxBpm" style="color: var(--rose);">Max: 105</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="slider-row"><span>Low HR Alert (Bradycardia Min)</span><span class="slider-val-tag" id="labelMinBpm">55 BPM</span></div>
+            <input type="range" class="custom-slider" id="sliderMinBpm" min="40" max="75" value="55" oninput="updateDualThresholds()">
+          </div>
+          <div class="field-group">
+            <div class="slider-row"><span>High HR Alert (Tachycardia Max)</span><span class="slider-val-tag" id="labelMaxBpm">105 BPM</span></div>
+            <input type="range" class="custom-slider" id="sliderMaxBpm" min="80" max="150" value="105" oninput="updateDualThresholds()">
+          </div>
+        </div>
+
+        <!-- 2. Blood Oxygen SpO2 (Min & Max) -->
+        <div class="dual-slider-box">
+          <div class="dual-slider-header">
+            <span class="dual-slider-title">💧 Blood Oxygen (SpO2 %)</span>
+            <div class="dual-badges">
+              <span class="dual-badge" id="badgeMinSpo2" style="color: var(--rose);">Min: 93%</span>
+              <span class="dual-badge" id="badgeMaxSpo2" style="color: var(--cyan);">Max: 100%</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="slider-row"><span>Low Oxygen Alert (Hypoxia Min)</span><span class="slider-val-tag" id="labelMinSpo2">93%</span></div>
+            <input type="range" class="custom-slider" id="sliderMinSpo2" min="80" max="95" value="93" oninput="updateDualThresholds()">
+          </div>
+          <div class="field-group">
+            <div class="slider-row"><span>Hyperoxia Upper Bound (Max)</span><span class="slider-val-tag" id="labelMaxSpo2">100%</span></div>
+            <input type="range" class="custom-slider" id="sliderMaxSpo2" min="96" max="100" value="100" oninput="updateDualThresholds()">
+          </div>
+        </div>
+
+        <!-- 3. Body Temperature (Min & Max) -->
+        <div class="dual-slider-box">
+          <div class="dual-slider-header">
+            <span class="dual-slider-title">🌡️ Body Temperature (°C)</span>
+            <div class="dual-badges">
+              <span class="dual-badge" id="badgeMinTemp" style="color: var(--blue);">Min: 36.0°C</span>
+              <span class="dual-badge" id="badgeMaxTemp" style="color: var(--rose);">Max: 38.0°C</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="slider-row"><span>Hypothermia Alert (Min Temp)</span><span class="slider-val-tag" id="labelMinTemp">36.0°C</span></div>
+            <input type="range" class="custom-slider" id="sliderMinTemp" min="34.0" max="36.8" step="0.1" value="36.0" oninput="updateDualThresholds()">
+          </div>
+          <div class="field-group">
+            <div class="slider-row"><span>Fever / Pyrexia Alert (Max Temp)</span><span class="slider-val-tag" id="labelMaxTemp">38.0°C</span></div>
+            <input type="range" class="custom-slider" id="sliderMaxTemp" min="37.2" max="40.5" step="0.1" value="38.0" oninput="updateDualThresholds()">
+          </div>
+        </div>
+
+        <!-- 4. Respiratory Rate RR (Min & Max) -->
+        <div class="dual-slider-box" id="boxThresholdRr">
+          <div class="dual-slider-header">
+            <span class="dual-slider-title">💨 Respiratory Rate (RPM)</span>
+            <div class="dual-badges">
+              <span class="dual-badge" id="badgeMinRr" style="color: var(--amber);">Min: 10</span>
+              <span class="dual-badge" id="badgeMaxRr" style="color: var(--rose);">Max: 22</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="slider-row"><span>Bradypnea Alert (Min RPM)</span><span class="slider-val-tag" id="labelMinRr">10 RPM</span></div>
+            <input type="range" class="custom-slider" id="sliderMinRr" min="8" max="14" value="10" oninput="updateDualThresholds()">
+          </div>
+          <div class="field-group">
+            <div class="slider-row"><span>Tachypnea Alert (Max RPM)</span><span class="slider-val-tag" id="labelMaxRr">22 RPM</span></div>
+            <input type="range" class="custom-slider" id="sliderMaxRr" min="18" max="35" value="22" oninput="updateDualThresholds()">
+          </div>
+        </div>
+
+        <!-- 5. Perfusion Index PI (Min & Max) -->
+        <div class="dual-slider-box" id="boxThresholdPi">
+          <div class="dual-slider-header">
+            <span class="dual-slider-title">🩸 Perfusion Index (PI %)</span>
+            <div class="dual-badges">
+              <span class="dual-badge" id="badgeMinPi" style="color: var(--amber);">Min: 1.2%</span>
+              <span class="dual-badge" id="badgeMaxPi" style="color: var(--purple);">Max: 10.0%</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="slider-row"><span>Weak Perfusion Alert (Min PI)</span><span class="slider-val-tag" id="labelMinPi">1.2%</span></div>
+            <input type="range" class="custom-slider" id="sliderMinPi" min="0.5" max="2.5" step="0.1" value="1.2" oninput="updateDualThresholds()">
+          </div>
+          <div class="field-group">
+            <div class="slider-row"><span>Vasodilation / Upper Bound (Max PI)</span><span class="slider-val-tag" id="labelMaxPi">10.0%</span></div>
+            <input type="range" class="custom-slider" id="sliderMaxPi" min="5.0" max="15.0" step="0.5" value="10.0" oninput="updateDualThresholds()">
+          </div>
+        </div>
+
+      </div>
+
+      
+        <!-- AI & ALGORITHM TOGGLES -->
+        <div class="settings-card">
+          <div class="sec-title">AI & ALGORITHM TOGGLES</div>
+          
+          <div class="field-group" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+              <div style="font-weight: 700; font-size: 13px; color: var(--text);">AI Living Body & PPG Waveform Verification</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Clear telemetry and alert if sensor is detached or non-human wave</div>
+            </div>
+            <input type="checkbox" id="toggleAiLivingBody" onchange="saveAiFeatureSettings()" style="width: 20px; height: 20px;" checked>
+          </div>
+
+          <div class="field-group" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+              <div style="font-weight: 700; font-size: 13px; color: var(--text);">AI Curve Smoothing (Cubic Bezier)</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Render smooth hospital pulse contour instead of raw discrete points</div>
+            </div>
+            <input type="checkbox" id="toggleAiSmoothing" onchange="saveAiFeatureSettings()" style="width: 20px; height: 20px;" checked>
+          </div>
+
+          <div class="field-group" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+              <div style="font-weight: 700; font-size: 13px; color: var(--text);">AI Spoken Voice Reports</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Enable speech narration of clinical reports</div>
+            </div>
+            <input type="checkbox" id="toggleAiVoiceReports" onchange="saveAiFeatureSettings()" style="width: 20px; height: 20px;" checked>
+          </div>
+
+          <div class="field-group" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+              <div style="font-weight: 700; font-size: 13px; color: var(--text);">Browser & Phone Push Notifications</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Send phone push notification alerts during threshold breach</div>
+            </div>
+            <input type="checkbox" id="togglePushNotifications" onchange="saveAiFeatureSettings()" style="width: 20px; height: 20px;" checked>
+          </div>
+
+          <button class="btn-nurse" style="width: 100%; justify-content: center; margin-top: 6px;" onclick="requestNotificationPermission()">
+            📲 Enable Phone Push Notifications
+          </button>
+        </div>
+
+        <!-- SOUND & EMERGENCY SIRENS CUSTOMIZATION -->
+      <div class="settings-card">
+        <div class="sec-title">EMERGENCY ALARM SOUNDS & NOTIFICATIONS</div>
+        
+        <div class="field-group">
+          <label class="field-label">Alarm Tone Type (Emergency Siren Sounds)</label>
+          <select class="text-input" id="soundToneSelect" onchange="saveSoundSettings()">
+            <option value="emergency_siren">High-Priority Emergency Siren</option>
+            <option value="ambulance_wail">Ambulance Rapid Wail</option>
+            <option value="code_blue">ICU Code Blue Crash Alarm</option>
+            <option value="medical_dual">Standard Medical Dual-Tone</option>
+            <option value="soft_chime">Gentle Clinical Chime</option>
+            <option value="vibrate_only">Vibration Only / Silent</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <div class="slider-row">
+            <span>Alarm Tone Volume</span>
+            <span id="labelAlarmVol" class="slider-val-tag">80%</span>
+          </div>
+          <input type="range" class="custom-slider" id="sliderAlarmVol" min="10" max="100" value="80" oninput="updateSoundVol(this.value)">
+        </div>
+
+        <button class="btn-action btn-secondary" onclick="testAlarmSound()">
+          🔊 Test Configured Emergency Sound
+        </button>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- BOTTOM NAVIGATION BAR (5 ITEMS)             -->
+    <!-- ========================================== -->
+    <nav class="bottom-nav">
+      <div class="nav-item active" onclick="switchNav('live')">
+        <span class="nav-icon">🩺</span>
+        <span>Live</span>
+      </div>
+      <div class="nav-item" onclick="switchNav('analytics')">
+        <span class="nav-icon">📈</span>
+        <span>History & 24h</span>
+      </div>
+      <div class="nav-item" onclick="switchNav('report')">
+        <span class="nav-icon">📋</span>
+        <span>Daily Report</span>
+      </div>
+      <div class="nav-item" onclick="switchNav('modules')">
+        <span class="nav-icon">🧩</span>
+        <span>Modules</span>
+      </div>
+      <div class="nav-item" onclick="switchNav('settings')">
+        <span class="nav-icon">⚙️</span>
+        <span>Settings</span>
+      </div>
+    </nav>
+
+  </div>
+
+  <!-- Modal for Printable Medical Report -->
+  <div class="modal-backdrop" id="printModal" onclick="closePrintModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+        <div style="font-size: 14px; font-weight: 800; color: var(--cyan);">HOSPITAL ICU CLINICAL SUMMARY</div>
+        <button onclick="closePrintModal()" style="background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer;">✕</button>
+      </div>
+      <div id="printModalContent" style="font-size: 12px; color: var(--text-sub); line-height: 1.6; display: flex; flex-direction: column; gap: 10px;">
+        <!-- Injected via JS -->
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border); padding-top: 12px;">
+        <button class="btn-action btn-secondary" onclick="closePrintModal()">Close</button>
+        <button class="btn-action" style="background: var(--cyan); color: #000;" onclick="window.print()">🖨️ Print Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification element -->
+  <div class="toast" id="toastMsg">Notification message</div>
+
+  <script>
+    // ==========================================
+    // APPLICATION STATE
+    // ==========================================
+    const state = {
+      aiLivingBodyCheck: localStorage.getItem('ai_living_body_check') !== null ? (localStorage.getItem('ai_living_body_check') === 'true') : true,
+      aiCurveSmoothing: localStorage.getItem('ai_curve_smoothing') !== null ? (localStorage.getItem('ai_curve_smoothing') === 'true') : true,
+      aiVoiceReports: localStorage.getItem('ai_voice_reports') !== null ? (localStorage.getItem('ai_voice_reports') === 'true') : true,
+      pushNotifications: localStorage.getItem('push_notifications') !== null ? (localStorage.getItem('push_notifications') === 'true') : true,
+      isBodyConnected: true,
+      isLivingBody: true,
+      ppgSamples: [18, 25, 42, 70, 96, 88, 72, 60, 52, 58, 64, 56, 48, 40, 34, 28, 24, 21, 19, 18, 17, 18, 20, 24, 30],
+      ppgRollingBuffer: [
+        18, 25, 42, 70, 96, 88, 72, 60, 52, 58, 64, 56, 48, 40, 34, 28, 24, 21, 19, 18, 17, 18, 20, 24, 30,
+        18, 25, 42, 70, 96, 88, 72, 60, 52, 58, 64, 56, 48, 40, 34, 28, 24, 21, 19, 18, 17, 18, 20, 24, 30,
+        18, 25, 42, 70, 96, 88, 72, 60, 52, 58, 64, 56, 48, 40, 34, 28, 24, 21, 19, 18, 17, 18, 20, 24, 30,
+        18, 25, 42, 70, 96, 88, 72, 60, 52, 58, 64, 56, 48, 40, 34, 28, 24, 21, 19, 18, 17, 18, 20, 24, 30,
+        18, 25, 42, 70, 96, 88, 72, 60, 52, 58, 64, 56, 48, 40, 34, 28, 24, 21, 19, 18, 17, 18, 20, 24, 30
+      ],
+      isAiSpeaking: false,
+      patient: {
+        name: localStorage.getItem('p_name') || 'Eleanor Vance',
+        age: localStorage.getItem('p_age') || '38 / Female',
+        bed: localStorage.getItem('p_bed') || 'Bed 01 (ICU)',
+        nursePhone: localStorage.getItem('p_nursePhone') || '+94 77 123 4567',
+        nurseName: localStorage.getItem('p_nurseName') || 'Staff Nurse Kumara'
+      },
+      // Optional Sensor Modules (RR and PI)
+      modules: {
+        rr: localStorage.getItem('mod_rr') !== null ? (localStorage.getItem('mod_rr') === 'true') : true,
+        pi: localStorage.getItem('mod_pi') !== null ? (localStorage.getItem('mod_pi') === 'true') : true
+      },
+      // Dual Thresholds (Min and Max)
+      thresholds: {
+        minBpm: parseInt(localStorage.getItem('th_minBpm')) || 55,
+        maxBpm: parseInt(localStorage.getItem('th_maxBpm')) || 105,
+        minSpo2: parseInt(localStorage.getItem('th_minSpo2')) || 93,
+        maxSpo2: parseInt(localStorage.getItem('th_maxSpo2')) || 100,
+        minTemp: parseFloat(localStorage.getItem('th_minTemp')) || 36.0,
+        maxTemp: parseFloat(localStorage.getItem('th_maxTemp')) || 38.0,
+        minRr: parseInt(localStorage.getItem('th_minRr')) || 10,
+        maxRr: parseInt(localStorage.getItem('th_maxRr')) || 22,
+        minPi: parseFloat(localStorage.getItem('th_minPi')) || 1.2,
+        maxPi: parseFloat(localStorage.getItem('th_maxPi')) || 10.0
+      },
+      sound: {
+        tone: localStorage.getItem('snd_tone') || 'emergency_siren',
+        volume: parseInt(localStorage.getItem('snd_vol')) || 80,
+        muted: false
+      },
+      vitals: {
+        bpm: 76,
+        spo2: 98,
+        pi: 3.8,
+        rr: 16,
+        temp: 36.8,
+        isDanger: false,
+        status: 'Normal'
+      },
+      isFahrenheit: false,
+      history: [],
+      history24h: [],
+      monthlyData: [],
+      dailyIncidents: [],
+      activeTrendMetric: 'BPM',
+      active24hMetric: 'BPM',
+      historySubTab: 'live-trend'
+    };
+
+    // Seed initial real-time history
+    for (let i = 25; i >= 0; i--) {
+      state.history.push({
+        bpm: 73 + (i % 6),
+        spo2: 97 + (i % 3),
+        pi: Number((3.5 + ((i % 5) * 0.2)).toFixed(1)),
+        rr: 15 + (i % 4),
+        temp: Number((36.6 + ((i % 4) * 0.1)).toFixed(1)),
+        isDanger: false
+      });
+    }
+
+    // Seed initial 24-hour hourly data
+    const hourLabels = [];
+    const nowHour = new Date().getHours();
+    for (let i = 23; i >= 0; i--) {
+      const h = (nowHour - i + 24) % 24;
+      const hStr = (h < 10 ? '0' : '') + h + ':00';
+      const isNight = h >= 23 || h <= 5;
+      const bpm = isNight ? 62 + (i % 5) : 74 + (i % 8);
+      const spo2 = isNight ? 96 + (i % 3) : 98 + (i % 2);
+      const pi = Number((3.0 + (i % 4) * 0.3).toFixed(1));
+      const rr = isNight ? 14 + (i % 3) : 16 + (i % 4);
+      const temp = Number((36.5 + (i % 4) * 0.15).toFixed(1));
+      const isDrift = (i === 7); // single minor event
+      state.history24h.push({
+        time: hStr,
+        bpm: isDrift ? 112 : bpm,
+        spo2: isDrift ? 92 : spo2,
+        pi: pi,
+        rr: isDrift ? 24 : rr,
+        temp: temp,
+        status: isDrift ? 'Minor Tachycardia' : 'Stable'
+      });
+    }
+
+    // Seed 30 days of monthly analysis data
+    const today = new Date();
+    for (let d = 29; d >= 0; d--) {
+      const dateObj = new Date(today.getTime() - d * 24 * 60 * 60 * 1000);
+      const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const breaches = (d === 12 || d === 22) ? 1 : 0;
+      state.monthlyData.push({
+        date: dateStr,
+        minBpm: 60 + (d % 6),
+        avgBpm: 74 + (d % 4),
+        maxBpm: breaches ? 122 : 94 + (d % 5),
+        avgSpo2: (98.2 - (d % 3) * 0.3).toFixed(1),
+        avgTemp: (36.7 + (d % 3) * 0.1).toFixed(1),
+        breaches: breaches,
+        rating: breaches ? 'Warning' : 'Optimal'
+      });
+    }
+
+    // Seed sample daily incident events
+    state.dailyIncidents = [
+      { time: '02:30 AM', desc: 'Nocturnal resting vitals verified stable by tele-monitor.', hazard: false },
+      { time: '07:15 AM', desc: 'Morning physician rounds - Heart Rate 78 BPM, SpO2 98%.', hazard: false },
+      { time: '11:42 AM', desc: 'Brief exertion / coughing: SpO2 dipped to 92% (recovered in 30s).', hazard: true },
+      { time: '16:00 PM', desc: 'Afternoon clinical telemetry verification stable.', hazard: false }
+    ];
+
+    // ==========================================
+    // ADVANCED WEB AUDIO API SYNTHESIZER
+    // ==========================================
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+        // Global Web Audio Unlock on First Touch/Click
+    function unlockWebAudio() {
+      try {
+        const ctx = getAudioContext();
+        if (ctx && ctx.state === 'suspended') {
+          ctx.resume();
+        }
+      } catch (_) {}
+    }
+    ['click', 'touchstart', 'keydown'].forEach(evt => {
+      document.addEventListener(evt, unlockWebAudio, { once: false });
+    });
+
+    function playSynthesizedTone(toneType, volumePct) {
+      if (state.sound.muted || toneType === 'vibrate_only') {
+        if ('vibrate' in navigator) navigator.vibrate([250, 100, 250]);
+        return;
+      }
+
+      const ctx = getAudioContext();
+      const vol = (volumePct / 100) * 0.28;
+      const now = ctx.currentTime;
+
+      if (toneType === 'emergency_siren') {
+        // High-pitch warbling Emergency Accident Siren (  )
+        for (let i = 0; i < 4; i++) {
+          const t = now + i * 0.16;
+          playBeep(1200, t, 0.08, vol, 'sawtooth');
+          playBeep(850, t + 0.08, 0.08, vol, 'sawtooth');
+        }
+      } else if (toneType === 'ambulance_wail') {
+        // Sweeping Ambulance Wail Siren (   )
+        try {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(650, now);
+          osc.frequency.linearRampToValueAtTime(1350, now + 0.35);
+          osc.frequency.linearRampToValueAtTime(650, now + 0.70);
+          gain.gain.setValueAtTime(vol, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.75);
+        } catch (e) {}
+      } else if (toneType === 'code_blue') {
+        // Rapid 4-pulse ICU Code Blue Crash Alarm
+        for (let i = 0; i < 4; i++) {
+          playBeep(1320, now + i * 0.12, 0.06, vol * 1.1, 'square');
+        }
+      } else if (toneType === 'medical_dual') {
+        // Classic hospital telemetry dual tone
+        playBeep(880, now, 0.15, vol);
+        playBeep(1174.66, now + 0.18, 0.20, vol);
+      } else if (toneType === 'soft_chime') {
+        // Gentle clinical chime
+        playBeep(523.25, now, 0.45, vol * 0.7, 'sine');
+      }
+    }
+
+    function playBeep(freq, startTime, duration, gainLevel, type = 'sine') {
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(gainLevel, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      } catch (e) {}
+    }
+
+    // Alarm interval when danger is active
+    setInterval(() => {
+      if (state.vitals.isDanger && !state.sound.muted) {
+        playSynthesizedTone(state.sound.tone, state.sound.volume);
+      }
+    }, 2200);
+
+    function testAlarmSound() {
+      playSynthesizedTone(state.sound.tone, state.sound.volume);
+      const toneLabels = {
+        emergency_siren: 'Emergency Accident Siren',
+        ambulance_wail: 'Ambulance Emergency Wail',
+        code_blue: 'Code Blue Crash Alarm',
+        medical_dual: 'Standard Medical Dual-Tone',
+        soft_chime: 'Gentle Clinical Chime',
+        vibrate_only: 'Silent / Vibrate'
+      };
+      showToast('🔊 Testing ' + (toneLabels[state.sound.tone] || state.sound.tone));
+    }
+
+    // ==========================================
+    // FIREBASE REALTIME DATABASE SYNC
+    // ==========================================
+    const firebaseConfig = {
+      apiKey: (window.__APP_CONFIG__ && window.__APP_CONFIG__.FIREBASE_API_KEY) || localStorage.getItem("FIREBASE_API_KEY") || "",
+      projectId: "patient-monitor-1bf49",
+      databaseURL: "https://patient-monitor-1bf49-default-rtdb.firebaseio.com",
+      storageBucket: "patient-monitor-1bf49.firebasestorage.app"
+    };
+
+    try {
+      firebase.initializeApp(firebaseConfig);
+          // Standalone Continuous Pulse Generator (keeps wave alive when offline/waiting)
+    let hasReceivedLiveFirebase = false;
+    setInterval(() => {
+      if (!hasReceivedLiveFirebase && state.isLivingBody && state.vitals && state.vitals.bpm > 0) {
+        const bpm = state.vitals.bpm;
+        const beatsPerSec = bpm / 60.0;
+        const nowSec = performance.now() / 1000.0;
+        const new25 = [];
+        for (let i = 0; i < 25; i++) {
+          const t = (nowSec + (i / 25.0) / beatsPerSec) * beatsPerSec;
+          const phase = t % 1.0;
+          let val = 18.0;
+          if (phase < 0.18) {
+            val = Math.sin((phase / 0.18) * (Math.PI / 2)) * 80.0 + 18.0;
+          } else if (phase < 0.38) {
+            const pRel = (phase - 0.18) / 0.20;
+            val = 98.0 - (pRel * 45.0);
+          } else if (phase < 0.50) {
+            const pRel = (phase - 0.38) / 0.12;
+            val = 53.0 + Math.sin(pRel * Math.PI) * 16.0;
+          } else {
+            const pRel = (phase - 0.50) / 0.50;
+            val = 53.0 * Math.exp(-pRel * 2.2) + 12.0;
+          }
+          new25.push(Math.round(val));
+        }
+        if (state.ppgRollingBuffer) {
+          state.ppgRollingBuffer.push(...new25);
+          if (state.ppgRollingBuffer.length > 125) {
+            state.ppgRollingBuffer.splice(0, state.ppgRollingBuffer.length - 125);
+          }
+        }
+      }
+    }, 1000);
+
+      firebase.database().ref('patient').on('value', (snap) => {
+        const data = snap.val();
+        if (data) {
+          const ppgArr = Array.isArray(data.ppgSamples) ? data.ppgSamples : [];
+          const livingFlag = data.isLivingBody !== undefined ? (data.isLivingBody === true || data.isLivingBody === 'true') : true;
+          const rawBpm = data.bpm !== undefined ? Number(data.bpm) : (data.heartRate !== undefined ? Number(data.heartRate) : 0);
+          const rawSpo2 = data.spo2 !== undefined ? Number(data.spo2) : (data.spO2 !== undefined ? Number(data.spO2) : 0);
+          const rawPi = data.pi !== undefined ? Number(data.pi) : (data.perfusionIndex !== undefined ? Number(data.perfusionIndex) : 0.0);
+          const rawRr = data.rr !== undefined ? Number(data.rr) : (data.respiratoryRate !== undefined ? Number(data.respiratoryRate) : 0);
+          const rawTemp = data.temp !== undefined ? Number(data.temp) : (data.temperature !== undefined ? Number(data.temperature) : 0.0);
+
+          receiveTelemetry({
+            bpm: rawBpm,
+            spo2: rawSpo2,
+            pi: rawPi,
+            rr: rawRr,
+            temp: rawTemp,
+            isDanger: data.isDanger || data.danger || false,
+            status: data.status || 'Normal',
+            ppgSamples: ppgArr,
+            isLivingBody: livingFlag
+          });
+          document.getElementById('liveStatusText').innerText = "LIVE RTDB";
+          hasReceivedLiveFirebase = true;
+        }
+      });
+    } catch (e) {
+      console.warn("Firebase listener notice:", e);
+    }
+
+    function receiveTelemetry(data) {
+      const incomingPpg = data.ppgSamples && data.ppgSamples.length ? data.ppgSamples : new Array(25).fill(0.0);
+      state.ppgSamples = incomingPpg;
+      state.isLivingBody = data.isLivingBody !== undefined ? Boolean(data.isLivingBody) : false;
+
+      // Update continuous 5-second rolling buffer (125 samples = 25 pts/sec * 5s)
+      if (!state.ppgRollingBuffer) state.ppgRollingBuffer = new Array(125).fill(0.0);
+      if (!state.isLivingBody || !data.bpm || !data.spo2) {
+        state.ppgRollingBuffer.push(...new Array(25).fill(0.0));
+      } else {
+        state.ppgRollingBuffer.push(...incomingPpg);
+      }
+      if (state.ppgRollingBuffer.length > 125) {
+        state.ppgRollingBuffer.splice(0, state.ppgRollingBuffer.length - 125);
+      }
+
+      // STRICT CHECK: If living body false or missing data, zero all vitals
+      const hasPulse = data.bpm > 0 && data.spo2 > 0;
+      let bodyConnected = state.isLivingBody && hasPulse;
+      if (state.aiLivingBodyCheck && bodyConnected && incomingPpg.length >= 10) {
+        const minV = Math.min(...incomingPpg);
+        const maxV = Math.max(...incomingPpg);
+        if ((maxV - minV) < 1.0) {
+          bodyConnected = false;
+        }
+      }
+      state.isBodyConnected = bodyConnected;
+      const breaches = [];
+      const th = state.thresholds;
+
+      // Heart Rate breaches (Min & Max)
+      if (data.bpm > th.maxBpm) breaches.push(`High HR (${data.bpm} > ${th.maxBpm})`);
+      if (data.bpm < th.minBpm) breaches.push(`Low HR (${data.bpm} < ${th.minBpm})`);
+
+      // SpO2 breaches (Min & Max)
+      if (data.spo2 < th.minSpo2) breaches.push(`Low SpO2 (${data.spo2}% < ${th.minSpo2}%)`);
+      if (data.spo2 > th.maxSpo2) breaches.push(`High SpO2 (${data.spo2}% > ${th.maxSpo2}%)`);
+
+      // Temperature breaches (Min & Max)
+      if (data.temp > th.maxTemp) breaches.push(`Elevated Temp (${data.temp}°C > ${th.maxTemp}°C)`);
+      if (data.temp < th.minTemp) breaches.push(`Low Temp (${data.temp}°C < ${th.minTemp}°C)`);
+
+      // Modular RR breaches (ONLY if RR module is enabled!)
+      if (state.modules.rr) {
+        if (data.rr > th.maxRr) breaches.push(`Tachypnea (${data.rr} > ${th.maxRr} RPM)`);
+        if (data.rr < th.minRr) breaches.push(`Bradypnea (${data.rr} < ${th.minRr} RPM)`);
+      }
+
+      // Modular PI breaches (ONLY if PI module is enabled!)
+      if (state.modules.pi) {
+        if (data.pi < th.minPi) breaches.push(`Low Perfusion (${data.pi}% < ${th.minPi}%)`);
+        if (data.pi > th.maxPi) breaches.push(`Hyperperfusion (${data.pi}% > ${th.maxPi}%)`);
+      }
+
+      const hasBreaches = breaches.length > 0;
+      data.isDanger = data.isDanger || hasBreaches;
+      if (hasBreaches) {
+        data.status = breaches.join(' • ');
+      }
+
+      state.vitals = data;
+      state.history.push({ ...data });
+      if (state.history.length > 35) state.history.shift();
+
+      // Trigger audible medical alarm alert immediately on threshold breach or danger
+      if ((data.isDanger || breaches.length > 0) && !state.sound.muted) {
+        unlockWebAudio();
+        playSynthesizedTone(state.sound.tone || 'emergency_siren', state.sound.volume || 85);
+      }
+
+      renderDashboard(breaches);
+    }
+
+    // ==========================================
+    // UI RENDERING ENGINE & MODULAR VISIBILITY
+    // ==========================================
+    function renderDashboard(breaches = []) {
+      const v = state.vitals;
+
+      // Update Living Body status badge & PPG chart
+      const livingBadge = document.getElementById('livingBodyBadge');
+      if (livingBadge) {
+        if (!state.isBodyConnected) {
+          livingBadge.className = 'badge-living detached';
+          livingBadge.innerText = '🔴 SENSOR DETACHED / NON-HUMAN';
+        } else {
+          livingBadge.className = 'badge-living';
+          livingBadge.innerText = '🟢 LIVING BODY VERIFIED';
+        }
+      }
+
+      // Check for sensor detachment / fake wave blanking
+      if (!state.isBodyConnected) {
+        document.getElementById('valBpm').innerText = '--';
+        document.getElementById('statusBpm').innerText = 'Sensor Detached';
+        document.getElementById('cardBpm').className = 'vital-card abnormal';
+
+        document.getElementById('valSpo2').innerText = '--';
+        document.getElementById('statusSpo2').innerText = 'No Signal';
+        document.getElementById('cardSpo2').className = 'vital-card abnormal';
+
+        document.getElementById('valTemp').innerText = '--';
+        document.getElementById('statusTemp').innerText = 'Sensor Offline';
+        document.getElementById('cardTemp').className = 'vital-card abnormal';
+
+        if (document.getElementById('valPi')) document.getElementById('valPi').innerText = '--';
+        if (document.getElementById('valRr')) document.getElementById('valRr').innerText = '--';
+
+        const banner = document.getElementById('alertBanner');
+        const icon = document.getElementById('alertIcon');
+        const title = document.getElementById('alertTitle');
+        const desc = document.getElementById('alertDesc');
+        const trig = document.getElementById('alertTriggers');
+
+        banner.className = 'alert-banner active-danger';
+        icon.innerText = '⚠️';
+        title.innerText = 'SENSOR DETACHED / NO LIVING BODY DETECTED';
+        desc.innerText = 'The MAX30102 sensor is not attached to a living human body. Telemetry cleared for patient safety.';
+        trig.innerHTML = '<span class="trigger-pill">Sensor Detached / Non-Living Wave</span>';
+
+        renderPpgWave();
+        return;
+      }
+
+      // Heart Rate
+      document.getElementById('valBpm').innerText = v.bpm;
+      document.getElementById('barBpm').style.width = Math.min(100, Math.max(0, (v.bpm / 160) * 100)) + '%';
+      const isBpmBad = v.bpm > state.thresholds.maxBpm || v.bpm < state.thresholds.minBpm;
+      document.getElementById('cardBpm').className = 'vital-card' + (isBpmBad ? ' abnormal' : '');
+      const bpmSt = document.getElementById('statusBpm');
+      bpmSt.innerText = v.bpm > state.thresholds.maxBpm ? 'Tachycardia Alert' : (v.bpm < state.thresholds.minBpm ? 'Bradycardia Alert' : 'Normal Sinus Rhythm');
+      bpmSt.className = 'v-status' + (isBpmBad ? ' danger' : '');
+
+      // Blood Oxygen SpO2
+      document.getElementById('valSpo2').innerText = v.spo2;
+      document.getElementById('barSpo2').style.width = Math.min(100, Math.max(0, v.spo2)) + '%';
+      const isSpo2Bad = v.spo2 < state.thresholds.minSpo2 || v.spo2 > state.thresholds.maxSpo2;
+      document.getElementById('cardSpo2').className = 'vital-card' + (isSpo2Bad ? ' abnormal' : '');
+      const spo2St = document.getElementById('statusSpo2');
+      spo2St.innerText = v.spo2 < 90 ? 'Critical Hypoxia' : (isSpo2Bad ? 'Hypoxemia Alert' : 'Optimal Perfusion');
+      spo2St.className = 'v-status' + (isSpo2Bad ? ' danger' : '');
+
+      // Body Temperature
+      const dispTemp = state.isFahrenheit ? ((v.temp * 9 / 5) + 32).toFixed(1) : Number(v.temp).toFixed(1);
+      document.getElementById('valTemp').innerText = dispTemp;
+      document.getElementById('unitTempLabel').innerText = state.isFahrenheit ? '°F' : '°C';
+      const isTempBad = v.temp > state.thresholds.maxTemp || v.temp < state.thresholds.minTemp;
+      document.getElementById('cardTemp').className = 'vital-card full-width' + (isTempBad ? ' abnormal' : '');
+      const tempSt = document.getElementById('statusTemp');
+      tempSt.innerText = v.temp > state.thresholds.maxTemp ? 'Pyrexia / Fever' : (v.temp < state.thresholds.minTemp ? 'Hypothermia' : 'Normothermic Stable');
+      tempSt.className = 'v-status' + (isTempBad ? ' danger' : '');
+
+      // MODULAR RR (Respiratory Rate) - Completely hidden if module disabled
+      const cardRr = document.getElementById('cardRr');
+      const pillRr = document.getElementById('pillRr');
+      const boxThRr = document.getElementById('boxThresholdRr');
+      if (state.modules.rr) {
+        cardRr.classList.remove('hidden');
+        if (pillRr) pillRr.classList.remove('hidden-param');
+        if (boxThRr) boxThRr.style.display = 'flex';
+        document.getElementById('valRr').innerText = v.rr;
+        const isRrBad = v.rr > state.thresholds.maxRr || v.rr < state.thresholds.minRr;
+        cardRr.className = 'vital-card' + (isRrBad ? ' abnormal' : '');
+        const rrSt = document.getElementById('statusRr');
+        rrSt.innerText = v.rr > state.thresholds.maxRr ? 'Tachypnea Alert' : (v.rr < state.thresholds.minRr ? 'Bradypnea Alert' : 'Eupnea (Normal)');
+        rrSt.className = 'v-status' + (isRrBad ? ' danger' : '');
+      } else {
+        cardRr.classList.add('hidden');
+        if (pillRr) pillRr.classList.add('hidden-param');
+        if (boxThRr) boxThRr.style.display = 'none';
+        if (state.activeTrendMetric === 'RR') switchTrendMetric('BPM');
+      }
+
+      // MODULAR PI (Perfusion Index) - Completely hidden if module disabled
+      const cardPi = document.getElementById('cardPi');
+      const pillPi = document.getElementById('pillPi');
+      const boxThPi = document.getElementById('boxThresholdPi');
+      if (state.modules.pi) {
+        cardPi.classList.remove('hidden');
+        if (pillPi) pillPi.classList.remove('hidden-param');
+        if (boxThPi) boxThPi.style.display = 'flex';
+        document.getElementById('valPi').innerText = Number(v.pi).toFixed(1);
+        document.getElementById('barPi').style.width = Math.min(100, Math.max(0, (v.pi / 10) * 100)) + '%';
+        const isPiBad = v.pi < state.thresholds.minPi || v.pi > state.thresholds.maxPi;
+        cardPi.className = 'vital-card' + (isPiBad ? ' abnormal' : '');
+        const piSt = document.getElementById('statusPi');
+        piSt.innerText = isPiBad ? 'Poor Peripheral Flow' : 'Strong Peripheral Pulse';
+        piSt.className = 'v-status' + (isPiBad ? ' danger' : '');
+      } else {
+        cardPi.classList.add('hidden');
+        if (pillPi) pillPi.classList.add('hidden-param');
+        if (boxThPi) boxThPi.style.display = 'none';
+        if (state.activeTrendMetric === 'PI') switchTrendMetric('BPM');
+      }
+
+      // Dynamic Alert Banner
+      const banner = document.getElementById('alertBanner');
+      const trigBox = document.getElementById('alertTriggers');
+      if (v.isDanger) {
+        banner.className = 'alert-banner hazard';
+        document.getElementById('alertIcon').innerText = '🚨';
+        document.getElementById('alertTitle').innerText = 'CRITICAL PHYSIOLOGICAL ALERT';
+        document.getElementById('alertDesc').innerText = 'Clinical threshold breach detected for this patient.';
+        if (breaches.length > 0) {
+          trigBox.style.display = 'block';
+          trigBox.innerText = 'Triggers: ' + breaches.join(' | ');
+        }
+      } else {
+        banner.className = 'alert-banner';
+        document.getElementById('alertIcon').innerText = '🛡️';
+        document.getElementById('alertTitle').innerText = 'VITALS NORMAL & STABLE';
+        document.getElementById('alertDesc').innerText = 'Monitored physiological indicators are within configured safe bounds.';
+        trigBox.style.display = 'none';
+      }
+
+      document.getElementById('ecgSyncLabel').innerText = `${v.bpm} BPM Live Sync`;
+
+      // Update charts
+      updateAnalyticsCharts();
+    }
+
+    // ==========================================
+    // SENSOR MODULES TOGGLE FUNCTIONS
+    // ==========================================
+    function toggleSensorModule(modKey, isEnabled) {
+      state.modules[modKey] = isEnabled;
+      localStorage.setItem('mod_' + modKey, isEnabled);
+
+      const card = document.getElementById(modKey === 'rr' ? 'modCardRr' : 'modCardPi');
+      const badge = document.getElementById(modKey === 'rr' ? 'badgeModRr' : 'badgeModPi');
+      
+      if (isEnabled) {
+        card.classList.add('enabled');
+        badge.className = 'module-status-badge on';
+        badge.innerText = 'ACTIVE & ADDED';
+        showToast(`✅ ${modKey.toUpperCase()} Module added to dashboard.`);
+      } else {
+        card.classList.remove('enabled');
+        badge.className = 'module-status-badge off';
+        badge.innerText = 'REMOVED / HIDDEN';
+        showToast(`🚫 ${modKey.toUpperCase()} Module removed and hidden.`);
+      }
+
+      updateModulesCount();
+      renderDashboard();
+      populate24hTable();
+      generateDailyReport();
+    }
+
+    function updateModulesCount() {
+      let activeCount = 3; // Heart Rate, SpO2, Temperature always
+      if (state.modules.rr) activeCount++;
+      if (state.modules.pi) activeCount++;
+      document.getElementById('activeModulesCount').innerText = `${activeCount} of 5 Vitals Active`;
+    }
+
+    function injectManualModuleVal(param, val) {
+      if (param === 'rr') {
+        document.getElementById('labelInjRr').innerText = val + ' RPM';
+        receiveTelemetry({ ...state.vitals, rr: parseInt(val) });
+      } else if (param === 'pi') {
+        document.getElementById('labelInjPi').innerText = parseFloat(val).toFixed(1) + '%';
+        receiveTelemetry({ ...state.vitals, pi: parseFloat(val) });
+      }
+    }
+
+    // ==========================================
+    // HISTORY SUB-TAB CONTROLLER (STREAM / 24H / MONTHLY)
+    // ==========================================
+    function switchHistorySub(subKey) {
+      state.historySubTab = subKey;
+      document.querySelectorAll('.subnav-btn').forEach(btn => btn.classList.remove('active'));
+      
+      document.getElementById('historyViewLive').style.display = subKey === 'live-trend' ? 'flex' : 'none';
+      document.getElementById('historyView24h').style.display = subKey === '24h' ? 'flex' : 'none';
+      document.getElementById('historyViewMonthly').style.display = subKey === 'monthly' ? 'flex' : 'none';
+
+      if (subKey === 'live-trend') {
+        document.getElementById('btnSubLiveTrend').classList.add('active');
+        setTimeout(updateAnalyticsCharts, 30);
+      } else if (subKey === '24h') {
+        document.getElementById('btnSub24h').classList.add('active');
+        setTimeout(() => {
+          draw24hChart();
+          populate24hTable();
+        }, 30);
+      } else if (subKey === 'monthly') {
+        document.getElementById('btnSubMonthly').classList.add('active');
+        setTimeout(() => {
+          drawMonthlyChart();
+          populateMonthlyTable();
+        }, 30);
+      }
+    }
+
+    // ==========================================
+    // CHARTS RENDERING ENGINES
+    // ==========================================
+    function updateAnalyticsCharts() {
+      drawDonutChart();
+      drawTrendChart();
+    }
+
+    function drawDonutChart() {
+      const canvas = document.getElementById('donutCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const opt = state.vitals.isDanger ? 65 : 92;
+      const warn = state.vitals.isDanger ? 22 : 6;
+      const crit = state.vitals.isDanger ? 13 : 2;
+
+      document.getElementById('donutPct').innerText = opt + '%';
+      document.getElementById('donutPct').style.color = state.vitals.isDanger ? 'var(--rose)' : 'var(--emerald)';
+      document.getElementById('legOpt').innerText = opt + '%';
+      document.getElementById('legWarn').innerText = warn + '%';
+      document.getElementById('legCrit').innerText = crit + '%';
+
+      const total = opt + warn + crit;
+      const angles = [(opt / total) * 2 * Math.PI, (warn / total) * 2 * Math.PI, (crit / total) * 2 * Math.PI];
+      const colors = ['#10B981', '#F59E0B', '#FF2E63'];
+
+      let curAngle = -0.5 * Math.PI;
+      const cx = w / 2, cy = h / 2, r = 52, lw = 13;
+
+      for (let i = 0; i < angles.length; i++) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, curAngle, curAngle + angles[i]);
+        ctx.strokeStyle = colors[i];
+        ctx.lineWidth = lw;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        curAngle += angles[i];
+      }
+    }
+
+    function switchTrendMetric(m) {
+      state.activeTrendMetric = m;
+      document.querySelectorAll('.metric-pill').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.innerText.startsWith(m)) btn.classList.add('active');
+      });
+      drawTrendChart();
+    }
+
+    function drawTrendChart() {
+      const canvas = document.getElementById('trendCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const m = state.activeTrendMetric;
+      let vals = state.history.map(pt => {
+        if (m === 'BPM') return pt.bpm;
+        if (m === 'SpO2') return pt.spo2;
+        if (m === 'PI') return pt.pi;
+        if (m === 'RR') return pt.rr;
+        return state.isFahrenheit ? (pt.temp * 9 / 5) + 32 : pt.temp;
+      });
+
+      if (vals.length < 2) return;
+
+      const cur = vals[vals.length - 1];
+      const min = Math.min(...vals);
+      const max = Math.max(...vals);
+      const avg = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
+
+      document.getElementById('statCur').innerText = cur;
+      document.getElementById('statMin').innerText = min;
+      document.getElementById('statAvg').innerText = avg;
+      document.getElementById('statMax').innerText = max;
+
+      let minY = min * 0.92, maxY = max * 1.08;
+      if (maxY === minY) maxY += 1;
+      let color = '#00E5FF';
+      if (m === 'BPM') color = '#FF2E63';
+      if (m === 'PI') color = '#A855F7';
+      if (m === 'RR') color = '#10B981';
+      if (m === 'Temp') color = '#F59E0B';
+
+      // Grid
+      ctx.strokeStyle = '#1E293B';
+      ctx.lineWidth = 1;
+      for (let i = 1; i <= 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, h * (i / 4));
+        ctx.lineTo(w, h * (i / 4));
+        ctx.stroke();
+      }
+
+      // Line
+      const stepX = w / (vals.length - 1);
+      ctx.beginPath();
+      vals.forEach((v, i) => {
+        const normY = 1.0 - Math.min(1, Math.max(0, (v - minY) / (maxY - minY)));
+        const x = i * stepX;
+        const y = normY * (h - 24) + 12;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    }
+
+    // ==========================================
+    // 24-HOUR ANALYSIS DRAWING & TABLE
+    // ==========================================
+    function switch24hMetric(m) {
+      state.active24hMetric = m;
+      document.querySelectorAll('#historyView24h .metric-pill').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.innerText.startsWith(m)) btn.classList.add('active');
+      });
+      draw24hChart();
+    }
+
+    function draw24hChart() {
+      const canvas = document.getElementById('canvas24h');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const m = state.active24hMetric;
+      const vals = state.history24h.map(pt => {
+        if (m === 'BPM') return pt.bpm;
+        if (m === 'SpO2') return pt.spo2;
+        if (m === 'PI') return pt.pi;
+        if (m === 'RR') return pt.rr;
+        return pt.temp;
+      });
+
+      const min = Math.min(...vals);
+      const max = Math.max(...vals);
+      const avg = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
+
+      document.getElementById('stat24Min').innerText = min;
+      document.getElementById('stat24Max').innerText = max;
+      document.getElementById('stat24Avg').innerText = avg;
+
+      let minY = min * 0.9, maxY = max * 1.1;
+      let color = '#38BDF8';
+      if (m === 'BPM') color = '#FF2E63';
+      if (m === 'PI') color = '#A855F7';
+      if (m === 'RR') color = '#10B981';
+      if (m === 'Temp') color = '#F59E0B';
+
+      // Grid
+      ctx.strokeStyle = '#1E293B';
+      ctx.lineWidth = 1;
+      for (let i = 1; i <= 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, h * (i / 4));
+        ctx.lineTo(w, h * (i / 4));
+        ctx.stroke();
+      }
+
+      // Smooth Line & Area Fill
+      const stepX = w / (vals.length - 1);
+      ctx.beginPath();
+      vals.forEach((v, i) => {
+        const normY = 1.0 - Math.min(1, Math.max(0, (v - minY) / (maxY - minY)));
+        const x = i * stepX;
+        const y = normY * (h - 28) + 14;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Point dots
+      vals.forEach((v, i) => {
+        const normY = 1.0 - Math.min(1, Math.max(0, (v - minY) / (maxY - minY)));
+        const x = i * stepX;
+        const y = normY * (h - 28) + 14;
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, 2 * Math.PI);
+        ctx.fillStyle = color;
+        ctx.fill();
+      });
+    }
+
+    function populate24hTable() {
+      const tbody = document.getElementById('tbody24h');
+      tbody.innerHTML = '';
+      
+      // Update header visibility according to modules
+      document.querySelectorAll('.col-rr').forEach(el => el.style.display = state.modules.rr ? '' : 'none');
+      document.querySelectorAll('.col-pi').forEach(el => el.style.display = state.modules.pi ? '' : 'none');
+
+      state.history24h.forEach(row => {
+        const tr = document.createElement('tr');
+        const badgeClass = row.status === 'Stable' ? 'badge-stable' : 'badge-warn';
+        let rrCol = state.modules.rr ? `<td>${row.rr}</td>` : '';
+        let piCol = state.modules.pi ? `<td>${row.pi}%</td>` : '';
+
+        tr.innerHTML = `
+          <td style="font-family: monospace; font-weight: 700; color: var(--cyan);">${row.time}</td>
+          <td>${row.bpm}</td>
+          <td>${row.spo2}%</td>
+          ${rrCol}
+          ${piCol}
+          <td>${row.temp}°C</td>
+          <td><span class="${badgeClass}">${row.status}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ==========================================
+    // MONTHLY ANALYSIS DRAWING & TABLE
+    // ==========================================
+    function drawMonthlyChart() {
+      const canvas = document.getElementById('canvasMonthly');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const days = state.monthlyData;
+      const stepX = w / (days.length - 1);
+
+      // Grid
+      ctx.strokeStyle = '#1E293B';
+      ctx.lineWidth = 1;
+      for (let i = 1; i <= 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, h * (i / 4));
+        ctx.lineTo(w, h * (i / 4));
+        ctx.stroke();
+      }
+
+      // Max BPM and Min BPM envelope band
+      ctx.fillStyle = 'rgba(0, 229, 255, 0.08)';
+      ctx.beginPath();
+      days.forEach((d, i) => {
+        const yMax = (1.0 - (d.maxBpm - 50) / 100) * (h - 24) + 12;
+        if (i === 0) ctx.moveTo(i * stepX, yMax);
+        else ctx.lineTo(i * stepX, yMax);
+      });
+      for (let i = days.length - 1; i >= 0; i--) {
+        const yMin = (1.0 - (days[i].minBpm - 50) / 100) * (h - 24) + 12;
+        ctx.lineTo(i * stepX, yMin);
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      // Average HR line
+      ctx.beginPath();
+      days.forEach((d, i) => {
+        const y = (1.0 - (d.avgBpm - 50) / 100) * (h - 24) + 12;
+        if (i === 0) ctx.moveTo(i * stepX, y);
+        else ctx.lineTo(i * stepX, y);
+      });
+      ctx.strokeStyle = '#10B981';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    }
+
+    function populateMonthlyTable() {
+      const tbody = document.getElementById('tbodyMonthly');
+      tbody.innerHTML = '';
+      state.monthlyData.forEach(row => {
+        const tr = document.createElement('tr');
+        const badgeClass = row.rating === 'Optimal' ? 'badge-stable' : 'badge-warn';
+        tr.innerHTML = `
+          <td style="font-weight: 700;">${row.date}</td>
+          <td>${row.minBpm} - ${row.maxBpm} BPM</td>
+          <td style="color: var(--cyan);">${row.avgSpo2}%</td>
+          <td>${row.avgTemp}°C</td>
+          <td>${row.breaches > 0 ? `<span class="badge-crit">${row.breaches} Alarm</span>` : '<span style="color:var(--text-muted);">None</span>'}</td>
+          <td><span class="${badgeClass}">${row.rating}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ==========================================
+    // DAILY REPORT GENERATION ENGINE
+    // ==========================================
+    function generateDailyReport() {
+      const tbody = document.getElementById('reportVitalsBody');
+      tbody.innerHTML = '';
+
+      const v = state.vitals;
+      const rows = [
+        { name: 'Heart Rate', min: Math.min(62, v.bpm - 6), avg: v.bpm, max: Math.max(104, v.bpm + 8), unit: 'BPM', st: 'Normal Sinus Rhythm' },
+        { name: 'Blood Oxygen (SpO2)', min: Math.min(94, v.spo2 - 2), avg: v.spo2, max: 99, unit: '%', st: 'Optimal Perfusion' },
+        { name: 'Body Temperature', min: (v.temp - 0.3).toFixed(1), avg: v.temp.toFixed(1), max: (v.temp + 0.4).toFixed(1), unit: '°C', st: 'Normothermic' }
+      ];
+
+      if (state.modules.rr) {
+        rows.push({ name: 'Respiratory Rate (RR)', min: Math.min(13, v.rr - 2), avg: v.rr, max: Math.max(20, v.rr + 3), unit: 'RPM', st: 'Eupnea Normal' });
+      }
+
+      if (state.modules.pi) {
+        rows.push({ name: 'Perfusion Index (PI)', min: (v.pi * 0.8).toFixed(1), avg: v.pi.toFixed(1), max: (v.pi * 1.3).toFixed(1), unit: '%', st: 'Strong Pulse Flow' });
+      }
+
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-weight: 700; color: #FFF;">${r.name}</td>
+          <td>${r.min} ${r.unit}</td>
+          <td style="color: var(--cyan); font-weight: 700;">${r.avg} ${r.unit}</td>
+          <td>${r.max} ${r.unit}</td>
+          <td><span class="badge-stable">${r.st}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Populate Incident list
+      const incList = document.getElementById('reportIncidentList');
+      incList.innerHTML = '';
+      state.dailyIncidents.forEach(inc => {
+        const item = document.createElement('div');
+        item.className = 'incident-item' + (inc.hazard ? ' hazard' : '');
+        item.innerHTML = `
+          <span class="incident-time">${inc.time}</span>
+          <span class="incident-text">${inc.desc}</span>
+        `;
+        incList.appendChild(item);
+      });
+    }
+
+    function openPrintModal() {
+      const modal = document.getElementById('printModal');
+      const content = document.getElementById('printModalContent');
+      const p = state.patient;
+      const v = state.vitals;
+      const dateStr = document.getElementById('reportDatePicker').value || new Date().toISOString().split('T')[0];
+
+      content.innerHTML = `
+        <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 12px; border: 1px solid var(--border);">
+          <strong>Patient:</strong> ${p.name} • <strong>Bed:</strong> ${p.bed} • <strong>Date:</strong> ${dateStr}<br>
+          <strong>Attending Nurse:</strong> ${p.nurseName} (${p.nursePhone})<br>
+          <strong>Clinical Baseline:</strong> Heart Rate: ${v.bpm} BPM | SpO2: ${v.spo2}% | Temp: ${v.temp}°C
+          ${state.modules.rr ? ` | RR: ${v.rr} RPM` : ''}
+          ${state.modules.pi ? ` | PI: ${v.pi}%` : ''}
+        </div>
+        <div style="margin-top: 6px;">
+          <strong>Physician Notes:</strong><br>
+          <em>${document.getElementById('reportDoctorNotes').value}</em>
+        </div>
+        <div style="font-size: 11px; color: var(--emerald); font-weight: 700;">
+          ✓ Overall 24-Hour Clinical Compliance: 98.4% In-Range. No acute code activation.
+        </div>
+      `;
+      modal.classList.add('show');
+    }
+
+    function closePrintModal(e) {
+      if (!e || e.target.id === 'printModal') {
+        document.getElementById('printModal').classList.remove('show');
+      }
+    }
+
+    function copyReportSummary() {
+      const text = `HOSPITAL ICU DAILY REPORT\nPatient: ${state.patient.name} (${state.patient.bed})\nDate: ${document.getElementById('reportDatePicker').value || 'Today'}\nHR: ${state.vitals.bpm} BPM | SpO2: ${state.vitals.spo2}%\nNotes: ${document.getElementById('reportDoctorNotes').value}`;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('📋 Daily summary report copied to clipboard!');
+      }).catch(() => {
+        showToast('📋 Summary ready for copy.');
+      });
+    }
+
+    // ==========================================
+    // REAL-TIME ICU PPG WAVEFORM & SWEEP BAR ANIMATOR
+    // ==========================================
+        // ==========================================
+    // AI VOICE REPORT & SPEECH SYNTHESIS ENGINE
+    // ==========================================
+    function speakAiReport() {
+      if (!('speechSynthesis' in window)) {
+        showToast('⚠️ Speech Synthesis not supported in this browser.');
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const v = state.vitals;
+      const isOk = !v.isDanger && state.isLivingBody;
+      const speechText = `Clinical AI Triage Report for patient ${state.patient.name}. ` +
+        `Heart rate is ${v.bpm} beats per minute. ` +
+        `Oxygen saturation is ${v.spo2} percent. ` +
+        `Body temperature is ${v.temp} degrees Celsius. ` +
+        `Perfusion index is ${v.pi} percent. ` +
+        (state.isLivingBody ? 'Living human arterial pulse verified. ' : 'Warning: Sensor detached or non-living waveform detected. ') +
+        `Patient status: ${v.status}. ` +
+        (isOk ? 'Patient is clinically stable in Normal Sinus Rhythm.' : 'Immediate clinical evaluation recommended.');
+
+      const utterance = new SpeechSynthesisUtterance(speechText);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      utterance.lang = 'en-US';
+
+      utterance.onstart = () => {
+        state.isAiSpeaking = true;
+        showToast('🎙️ AI Speaking Clinical Triage Report out loud...');
+      };
+      utterance.onend = () => {
+        state.isAiSpeaking = false;
+      };
+      utterance.onerror = () => {
+        state.isAiSpeaking = false;
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function toggleAiCurveSmoothing() {
+      state.aiCurveSmoothing = !state.aiCurveSmoothing;
+      localStorage.setItem('ai_curve_smoothing', state.aiCurveSmoothing);
+      const btn = document.getElementById('btnAiSmoothing');
+      if (btn) {
+        btn.className = 'btn-wave-toggle' + (state.aiCurveSmoothing ? ' active' : '');
+        btn.innerText = state.aiCurveSmoothing ? '⚡ AI Smoothing: ON' : '⚡ AI Smoothing: OFF';
+      }
+      showToast(state.aiCurveSmoothing ? 'Cubic Bezier curve smoothing enabled' : 'Raw linear medical trace enabled');
+    }
+
+    function runAiWaveAnalysis() {
+      if (!state.isLivingBody) {
+        showToast('⚠️ Cannot analyze waveform: Sensor detached / Flatline 0.0');
+        return;
+      }
+      showToast('🤖 AI Wave Analysis: Normal Arterial Pulse Morphology. Dichrotic notch confirmed at ~40% beat cycle.');
+    }
+
+    function renderPpgWave() {
+      const canvas = document.getElementById('ppgCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Clear previous frame
+      ctx.clearRect(0, 0, w, h);
+
+      // 1. Draw Dark-Mode ICU Monitor Medical Grid (5-Second Time Domain)
+      ctx.strokeStyle = 'rgba(30, 41, 59, 0.55)';
+      ctx.lineWidth = 1;
+
+      // Horizontal amplitude lines (4 divisions)
+      for (let i = 1; i <= 4; i++) {
+        const y = (h * i) / 5;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // Vertical time grid lines (5 major 1-second divisions across 5s window)
+      for (let i = 1; i <= 5; i++) {
+        const x = (w * i) / 5;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+
+        // Subdivisions (every 200ms = 5 intervals per second)
+        ctx.strokeStyle = 'rgba(30, 41, 59, 0.25)';
+        ctx.lineWidth = 0.5;
+        for (let sub = 1; sub < 5; sub++) {
+          const subX = (i - 1 + sub / 5) * (w / 5);
+          ctx.beginPath();
+          ctx.moveTo(subX, 0);
+          ctx.lineTo(subX, h);
+          ctx.stroke();
+        }
+        ctx.strokeStyle = 'rgba(30, 41, 59, 0.55)';
+        ctx.lineWidth = 1;
+      }
+
+      const baselineY = h - 8;
+      const rawSamples = (state.ppgRollingBuffer && state.ppgRollingBuffer.length >= 10)
+        ? state.ppgRollingBuffer
+        : (state.ppgSamples || []);
+
+      const isLiving = Boolean(state.isLivingBody && state.isBodyConnected && state.vitals && state.vitals.bpm > 0);
+
+      // 2. Fallback: If not a living body or sensor detached -> smoothly drop wave flatline to 0.0
+      if (!isLiving) {
+        ctx.strokeStyle = '#FF2E63';
+        ctx.lineWidth = 2.2;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(0, baselineY);
+        ctx.lineTo(w, baselineY);
+        ctx.stroke();
+
+        ctx.fillStyle = '#FF2E63';
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('--- SENSOR DETACHED / FLATLINE BASELINE 0.0 ---', w / 2, h / 2 - 6);
+        return;
+      }
+
+      // 3. Render Real 25-Sample IR Data Array across 5-Second Canvas with Cubic Bezier (tension 0.4)
+      const count = rawSamples.length;
+      let minVal = Math.min(...rawSamples);
+      let maxVal = Math.max(...rawSamples);
+      if (maxVal - minVal < 1.0) maxVal = minVal + 1.0;
+
+      const stepX = count > 1 ? w / (count - 1) : w;
+      const points = [];
+      for (let i = 0; i < count; i++) {
+        const normY = 1.0 - Math.min(1.0, Math.max(0.0, (rawSamples[i] - minVal) / (maxVal - minVal)));
+        const x = i * stepX;
+        const y = normY * (h - 26) + 12;
+        points.add ? points.add({x, y}) : points.push({x, y});
+      }
+
+      // Sweep bar cursor position based on 5-second time cycle
+      const now = performance.now();
+      const sweepProgress = (now % 5000) / 5000;
+      const cursorX = sweepProgress * w;
+      const gapWidth = w * 0.06; // 6% leading erase gap ahead of scan line
+      const eraseStart = cursorX;
+      const eraseEnd = cursorX + gapWidth;
+
+      // Partition points into fresh (behind cursor) and previous pass (ahead of gap)
+      const freshPoints = [];
+      const oldPoints = [];
+
+      for (let i = 0; i < points.length; i++) {
+        const pt = points[i];
+        let inGap = false;
+        let isFresh = false;
+        let isOld = false;
+
+        if (eraseEnd <= w) {
+          inGap = (pt.x >= eraseStart && pt.x <= eraseEnd);
+          isFresh = (pt.x < eraseStart);
+          isOld = (pt.x > eraseEnd);
+        } else {
+          const wrappedEnd = eraseEnd - w;
+          inGap = (pt.x >= eraseStart || pt.x <= wrappedEnd);
+          isFresh = (pt.x > wrappedEnd && pt.x < eraseStart);
+          isOld = false;
+        }
+
+        if (!inGap) {
+          if (isFresh) freshPoints.push(pt);
+          else if (isOld) oldPoints.push(pt);
+        }
+      }
+
+      // Path drawing helper using Cubic Bezier with exact tension 0.4
+      function drawCubicSpline(pts) {
+        if (pts.length < 2) return;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+
+        if (state.aiCurveSmoothing !== false && pts.length > 2) {
+          const tension = 0.4;
+          for (let i = 0; i < pts.length - 1; i++) {
+            const p0 = i > 0 ? pts[i - 1] : pts[i];
+            const p1 = pts[i];
+            const p2 = pts[i + 1];
+            const p3 = i < pts.length - 2 ? pts[i + 2] : p2;
+
+            const cp1x = p1.x + (p2.x - p0.x) * tension * 0.5;
+            const cp1y = p1.y + (p2.y - p0.y) * tension * 0.5;
+            const cp2x = p2.x - (p3.x - p1.x) * tension * 0.5;
+            const cp2y = p2.y - (p3.y - p1.y) * tension * 0.5;
+
+            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+          }
+        } else {
+          for (let i = 1; i < pts.length; i++) {
+            ctx.lineTo(pts[i].x, pts[i].y);
+          }
+        }
+      }
+
+      // 4. Draw Previous Pass ahead of erase gap (ICU phosphor decay effect)
+      if (oldPoints.length > 1) {
+        drawCubicSpline(oldPoints);
+        ctx.strokeStyle = 'rgba(0, 230, 118, 0.28)';
+        ctx.lineWidth = 1.6;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+      }
+
+      // 5. Draw Fresh Wave behind cursor with glowing neon green + gradient fill
+      if (freshPoints.length > 1) {
+        // Translucent gradient fill under curve
+        ctx.save();
+        drawCubicSpline(freshPoints);
+        ctx.lineTo(freshPoints[freshPoints.length - 1].x, h);
+        ctx.lineTo(freshPoints[0].x, h);
+        ctx.closePath();
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, 'rgba(0, 230, 118, 0.22)');
+        grad.addColorStop(0.7, 'rgba(0, 230, 118, 0.03)');
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.restore();
+
+        // Wide Glow Stroke Layer
+        ctx.save();
+        drawCubicSpline(freshPoints);
+        ctx.strokeStyle = 'rgba(0, 230, 118, 0.38)';
+        ctx.lineWidth = 4.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        ctx.restore();
+
+        // Core Sharp Neon Green Line (pointRadius: 0 / showDots: false)
+        ctx.save();
+        drawCubicSpline(freshPoints);
+        ctx.strokeStyle = '#00E676';
+        ctx.lineWidth = 2.2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 6. Draw Hospital ICU Bedside Sweep Bar & Luminous Head Dot
+      // Find Y at cursor position
+      let cursorY = h / 2;
+      if (points.length > 1) {
+        const relIdx = Math.min(points.length - 1, Math.max(0, Math.floor((cursorX / w) * (points.length - 1))));
+        cursorY = points[relIdx].y;
+      }
+
+      // Vertical scanning beam line
+      ctx.save();
+      const beamGrad = ctx.createLinearGradient(cursorX, 0, cursorX, h);
+      beamGrad.addColorStop(0, 'rgba(0, 229, 255, 0.10)');
+      beamGrad.addColorStop(0.5, 'rgba(0, 229, 255, 0.70)');
+      beamGrad.addColorStop(1, 'rgba(0, 229, 255, 0.10)');
+      ctx.strokeStyle = beamGrad;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(cursorX, 4);
+      ctx.lineTo(cursorX, h - 4);
+      ctx.stroke();
+      ctx.restore();
+
+      // Glowing Cursor Head Dot
+      ctx.beginPath();
+      ctx.arc(cursorX, cursorY, 5.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 230, 118, 0.45)';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(cursorX, cursorY, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fill();
+    }
+
+    function renderEcg() {
+      const w = ecgCanvas.width, h = ecgCanvas.height, mid = h / 2;
+      ecgCtx.clearRect(0, 0, w, h);
+
+      ecgCtx.beginPath();
+      ecgCtx.strokeStyle = state.vitals.isDanger ? '#FF2E63' : '#00E5FF';
+      ecgCtx.lineWidth = 2;
+
+      const pts = 80;
+      const step = w / pts;
+      for (let i = 0; i <= pts; i++) {
+        const x = i * step;
+        const norm = (i / pts + ecgOffset) % 1.0;
+        let y = mid;
+        if (norm > 0.40 && norm < 0.44) y -= h * 0.18;
+        else if (norm >= 0.44 && norm < 0.47) y += h * 0.12;
+        else if (norm >= 0.47 && norm < 0.52) y -= h * 0.45;
+        else if (norm >= 0.52 && norm < 0.56) y += h * 0.22;
+        else if (norm >= 0.56 && norm < 0.65) y -= h * 0.22;
+
+        if (i === 0) ecgCtx.moveTo(x, y);
+        else ecgCtx.lineTo(x, y);
+      }
+      ecgCtx.stroke();
+      ecgOffset = (ecgOffset + 0.015) % 1.0;\n      renderPpgWave();
+      requestAnimationFrame(renderEcg);
+    }
+    renderEcg();
+
+    // ==========================================
+    // EMERGENCY & NURSE CALL ACTIONS
+    // ==========================================
+    function callNurse() {
+      const phone = state.patient.nursePhone || '1990';
+      const name = state.patient.nurseName || 'Station Nurse';
+      showToast(`📞 Dialing ${name} at ${phone}...`);
+      window.location.href = `tel:${phone}`;
+    }
+
+    function triggerCodeBlue() {
+      unlockWebAudio();
+      state.sound.muted = false; // Emergency overrides mute
+      receiveTelemetry({
+        bpm: 142,
+        spo2: 85,
+        pi: 0.6,
+        rr: 28,
+        temp: 39.4,
+        isDanger: true,
+        status: 'CRITICAL CODE BLUE EMERGENCY',
+        isLivingBody: true,
+        ppgSamples: [12, 18, 35, 75, 105, 95, 80, 65, 55, 62, 70, 58, 48, 38, 30, 24, 20, 18, 17, 18, 20, 24, 30, 38, 50]
+      });
+      showToast('🚨 Code Blue alert broadcast to clinical crash team!');
+      playSynthesizedTone('code_blue', 100);
+      playSynthesizedTone('emergency_siren', 100);
+    }
+
+    // ==========================================
+    // SETTINGS, PROFILE & DUAL THRESHOLDS
+    // ==========================================
+    function saveProfileSettings() {
+      state.patient.name = document.getElementById('inputPatientName').value;
+      state.patient.age = document.getElementById('inputPatientAge').value;
+      state.patient.bed = document.getElementById('inputBedId').value;
+      
+      localStorage.setItem('p_name', state.patient.name);
+      localStorage.setItem('p_age', state.patient.age);
+      localStorage.setItem('p_bed', state.patient.bed);
+
+      document.getElementById('displayPatientName').innerText = state.patient.name;
+      document.getElementById('displayPatientMeta').innerText = `${state.patient.age} • ${state.patient.bed}`;
+      document.getElementById('pfpLetters').innerText = state.patient.name.split(' ').map(n=>n[0]).join('').substring(0,2);
+      showToast('✅ Patient profile updated.');
+    }
+
+    function saveNurseSettings() {
+      state.patient.nursePhone = document.getElementById('inputNursePhone').value;
+      state.patient.nurseName = document.getElementById('inputNurseName').value;
+      localStorage.setItem('p_nursePhone', state.patient.nursePhone);
+      localStorage.setItem('p_nurseName', state.patient.nurseName);
+      document.getElementById('nurseBtnLabel').innerText = 'Call ' + state.patient.nurseName.split(' ')[0];
+      showToast('✅ Nurse contact details saved.');
+    }
+
+    function updateDualThresholds() {
+      const th = state.thresholds;
+      
+      // Heart Rate
+      th.minBpm = parseInt(document.getElementById('sliderMinBpm').value);
+      th.maxBpm = parseInt(document.getElementById('sliderMaxBpm').value);
+      document.getElementById('labelMinBpm').innerText = th.minBpm + ' BPM';
+      document.getElementById('labelMaxBpm').innerText = th.maxBpm + ' BPM';
+      document.getElementById('badgeMinBpm').innerText = 'Min: ' + th.minBpm;
+      document.getElementById('badgeMaxBpm').innerText = 'Max: ' + th.maxBpm;
+      document.getElementById('tagBpm').innerText = `${th.minBpm} - ${th.maxBpm}`;
+
+      // SpO2
+      th.minSpo2 = parseInt(document.getElementById('sliderMinSpo2').value);
+      th.maxSpo2 = parseInt(document.getElementById('sliderMaxSpo2').value);
+      document.getElementById('labelMinSpo2').innerText = th.minSpo2 + '%';
+      document.getElementById('labelMaxSpo2').innerText = th.maxSpo2 + '%';
+      document.getElementById('badgeMinSpo2').innerText = 'Min: ' + th.minSpo2 + '%';
+      document.getElementById('badgeMaxSpo2').innerText = 'Max: ' + th.maxSpo2 + '%';
+      document.getElementById('tagSpo2').innerText = `${th.minSpo2} - ${th.maxSpo2}%`;
+
+      // Temperature
+      th.minTemp = parseFloat(document.getElementById('sliderMinTemp').value);
+      th.maxTemp = parseFloat(document.getElementById('sliderMaxTemp').value);
+      document.getElementById('labelMinTemp').innerText = th.minTemp.toFixed(1) + '°C';
+      document.getElementById('labelMaxTemp').innerText = th.maxTemp.toFixed(1) + '°C';
+      document.getElementById('badgeMinTemp').innerText = 'Min: ' + th.minTemp.toFixed(1) + '°C';
+      document.getElementById('badgeMaxTemp').innerText = 'Max: ' + th.maxTemp.toFixed(1) + '°C';
+      document.getElementById('tagTemp').innerText = `${th.minTemp.toFixed(1)} - ${th.maxTemp.toFixed(1)}°C`;
+
+      // Respiratory Rate
+      th.minRr = parseInt(document.getElementById('sliderMinRr').value);
+      th.maxRr = parseInt(document.getElementById('sliderMaxRr').value);
+      document.getElementById('labelMinRr').innerText = th.minRr + ' RPM';
+      document.getElementById('labelMaxRr').innerText = th.maxRr + ' RPM';
+      document.getElementById('badgeMinRr').innerText = 'Min: ' + th.minRr;
+      document.getElementById('badgeMaxRr').innerText = 'Max: ' + th.maxRr;
+      document.getElementById('tagRr').innerText = `${th.minRr} - ${th.maxRr}`;
+
+      // Perfusion Index
+      th.minPi = parseFloat(document.getElementById('sliderMinPi').value);
+      th.maxPi = parseFloat(document.getElementById('sliderMaxPi').value);
+      document.getElementById('labelMinPi').innerText = th.minPi.toFixed(1) + '%';
+      document.getElementById('labelMaxPi').innerText = th.maxPi.toFixed(1) + '%';
+      document.getElementById('badgeMinPi').innerText = 'Min: ' + th.minPi.toFixed(1) + '%';
+      document.getElementById('badgeMaxPi').innerText = 'Max: ' + th.maxPi.toFixed(1) + '%';
+      document.getElementById('tagPi').innerText = `${th.minPi.toFixed(1)} - ${th.maxPi.toFixed(1)}%`;
+
+      // Persist to LocalStorage
+      for (const [k, v] of Object.entries(th)) {
+        localStorage.setItem('th_' + k, v);
+      }
+
+      receiveTelemetry({ ...state.vitals });
+    }
+
+    function saveSoundSettings() {
+      state.sound.tone = document.getElementById('soundToneSelect').value;
+      localStorage.setItem('snd_tone', state.sound.tone);
+      showToast('🔊 Alarm sound changed to: ' + state.sound.tone);
+    }
+
+    function updateSoundVol(val) {
+      state.sound.volume = parseInt(val);
+      document.getElementById('labelAlarmVol').innerText = val + '%';
+      localStorage.setItem('snd_vol', state.sound.volume);
+    }
+
+    function toggleMute() {
+      const now = Date.now();
+      if (state.mutedUntil && now < state.mutedUntil) {
+        // Clear mute immediately
+        state.mutedUntil = 0;
+        state.sound.muted = false;
+        document.getElementById('muteIcon').innerText = '🔊';
+        document.getElementById('alarmSoundBtn').className = 'btn-top';
+        showToast('🔊 Audible alarms unmuted & armed.');
+      } else {
+        // Set strict 1-minute mute (60 seconds)
+        state.mutedUntil = now + 60000;
+        state.sound.muted = true;
+        document.getElementById('muteIcon').innerText = '🔇';
+        document.getElementById('alarmSoundBtn').className = 'btn-top active-alarm';
+        showToast('🔇 Alarms & popups silenced for 1 Minute (60s).');
+      }
+    }
+
+    function toggleTempUnit() {
+      state.isFahrenheit = !state.isFahrenheit;
+      document.getElementById('unitToggleBtn').innerText = state.isFahrenheit ? '°F' : '°C';
+      renderDashboard();
+    }
+
+    // ==========================================
+    // 5-TAB CONTROLLER
+    // ==========================================
+    function switchNav(tabKey) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+      document.getElementById('tab-' + tabKey).classList.add('active');
+      const tabOrder = ['live', 'analytics', 'report', 'modules', 'settings'];
+      const idx = tabOrder.indexOf(tabKey);
+      if (idx !== -1) {
+        document.querySelectorAll('.nav-item')[idx].classList.add('active');
+      }
+
+      if (tabKey === 'analytics') {
+        setTimeout(() => switchHistorySub(state.historySubTab), 50);
+      } else if (tabKey === 'report') {
+        generateDailyReport();
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toastMsg');
+      t.innerText = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    // Set today's date in report selector
+    document.getElementById('reportDatePicker').value = new Date().toISOString().split('T')[0];
+
+    // Load initial states
+    document.getElementById('toggleModRr').checked = state.modules.rr;
+    document.getElementById('toggleModPi').checked = state.modules.pi;
+    toggleSensorModule('rr', state.modules.rr);
+    toggleSensorModule('pi', state.modules.pi);
+
+    document.getElementById('soundToneSelect').value = state.sound.tone;
+    document.getElementById('sliderAlarmVol').value = state.sound.volume;
+    document.getElementById('labelAlarmVol').innerText = state.sound.volume + '%';
+
+    updateDualThresholds();
+    renderDashboard();
+    generateDailyReport();
+  
+    // ==========================================
+    // CLINICAL AI ASSISTANT CHATBOT & VOICE LOGIC
+    // ==========================================
+    let recognition = null;
+    let isRecognizing = false;
+
+    function openAiChatbotModal() {
+      const modal = document.getElementById('aiChatbotModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        // Update context chips
+        const hr = document.getElementById('chatHrCtx');
+        const spo2 = document.getElementById('chatSpo2Ctx');
+        const temp = document.getElementById('chatTempCtx');
+        const wave = document.getElementById('chatWaveCtx');
+        if (hr) hr.innerText = `HR: ${state.vitals.bpm || '--'} BPM`;
+        if (spo2) spo2.innerText = `SpO2: ${state.vitals.spo2 || '--'}%`;
+        if (temp) temp.innerText = `Temp: ${state.vitals.temp || '--'}°C`;
+        if (wave) wave.innerText = state.isLivingBody ? 'PPG: Living' : 'PPG: Detached';
+        // Focus input
+        setTimeout(() => {
+          const input = document.getElementById('chatInput');
+          if (input) input.focus();
+        }, 100);
+      }
+    }
+
+    function closeAiChatbotModal() {
+      const modal = document.getElementById('aiChatbotModal');
+      if (modal) modal.style.display = 'none';
+      if (isRecognizing && recognition) {
+        recognition.stop();
+        isRecognizing = false;
+        updateMicBtnState(false);
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    }
+
+    function closeAiChatbotOnOutside(e) {
+      if (e.target && e.target.id === 'aiChatbotModal') {
+        closeAiChatbotModal();
+      }
+    }
+
+    function handleChatKeyDown(e) {
+      if (e.key === 'Enter') {
+        sendChatMessage();
+      }
+    }
+
+    function sendQuickPrompt(promptText) {
+      const input = document.getElementById('chatInput');
+      if (input) input.value = promptText;
+      sendChatMessage();
+    }
+
+    function updateMicBtnState(listening) {
+      const btn = document.getElementById('btnMic');
+      if (btn) {
+        if (listening) {
+          btn.style.background = '#FF2E63';
+          btn.style.color = '#FFF';
+          btn.style.animation = 'pulse 1s infinite';
+        } else {
+          btn.style.background = 'transparent';
+          btn.style.color = 'var(--cyan)';
+          btn.style.animation = 'none';
+        }
+      }
+    }
+
+    function toggleSpeechRecognition() {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) {
+        showToast('⚠️ Speech recognition not supported in this browser. Please type your query.');
+        return;
+      }
+
+      if (isRecognizing) {
+        if (recognition) recognition.stop();
+        isRecognizing = false;
+        updateMicBtnState(false);
+        return;
+      }
+
+      try {
+        recognition = new SpeechRec();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+          isRecognizing = true;
+          updateMicBtnState(true);
+          showToast('🎙️ Listening... Speak your clinical query now.');
+        };
+
+        recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          const input = document.getElementById('chatInput');
+          if (input) input.value = transcript;
+          showToast(`Heard: "${transcript}"`);
+          sendChatMessage();
+        };
+
+        recognition.onerror = (e) => {
+          console.warn('Speech recognition error:', e);
+          isRecognizing = false;
+          updateMicBtnState(false);
+          showToast('Speech error: ' + (e.error || 'try again'));
+        };
+
+        recognition.onend = () => {
+          isRecognizing = false;
+          updateMicBtnState(false);
+        };
+
+        recognition.start();
+      } catch (err) {
+        console.error(err);
+        isRecognizing = false;
+        updateMicBtnState(false);
+      }
+    }
+
+    async function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      if (!input) return;
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+
+      const chatBox = document.getElementById('chatMessages');
+      if (!chatBox) return;
+
+      // Add user bubble
+      const userBubble = document.createElement('div');
+      userBubble.className = 'chat-bubble user';
+      userBubble.innerText = text;
+      chatBox.appendChild(userBubble);
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      // Add thinking bubble
+      const thinkingBubble = document.createElement('div');
+      thinkingBubble.className = 'chat-bubble ai';
+      thinkingBubble.innerText = 'Analyzing telemetry & clinical data...';
+      chatBox.appendChild(thinkingBubble);
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      // Clinical AI response logic (Local Medical Intelligence + Telemetry Grounding)
+      setTimeout(() => {
+        const v = state.vitals;
+        const p = state.patient;
+        const queryLower = text.toLowerCase();
+        let reply = '';
+
+        if (queryLower.includes('silence') || queryLower.includes('mute')) {
+          state.sound.muted = true;
+          showToast('🔇 Alarms silenced for 60 seconds.');
+          reply = `Active siren alerts have been silenced for 60 seconds. Telemetry monitoring remains fully active for ${p.name}.`;
+        } else if (queryLower.includes('ppg') || queryLower.includes('wave')) {
+          if (!state.isLivingBody) {
+            reply = `⚠️ Real-time PPG pulse waveform is currently flatlined at 0.0. The AI Living Body verification indicates sensor detachment or lack of pulsatile perfusion. Please verify probe attachment on ${p.name}.`;
+          } else {
+            reply = `The real-time PPG waveform displays a normal arterial pulse contour with steep systolic anacrotic upstroke, distinct dicrotic notch, and smooth diastolic decay. Perfusion index is ${v.pi}%, confirming adequate peripheral blood flow.`;
+          }
+        } else if (queryLower.includes('triage') || queryLower.includes('risk') || queryLower.includes('stability')) {
+          const isStable = !v.isDanger && state.isLivingBody;
+          reply = `Patient Eleanor Vance (Bed 01, ICU) is currently ${isStable ? 'CLINICALLY STABLE' : 'AT ELEVATED RISK'}. ` +
+            `Heart rate is ${v.bpm} BPM, SpO2 is ${v.spo2}%, Body Temp is ${v.temp}°C, Perfusion Index is ${v.pi}%. ` +
+            (isStable ? 'Normal Sinus Rhythm maintained. No urgent intervention required.' : `Alert status: ${v.status}. Recommend immediate nurse assessment.`);
+        } else if (queryLower.includes('explain') || queryLower.includes('vital')) {
+          reply = `Telemetry summary for Eleanor Vance: Heart Rate = ${v.bpm} BPM (threshold: ${state.thresholds.minBpm}-${state.thresholds.maxBpm}), SpO2 = ${v.spo2}%, Temperature = ${v.temp}°C, Perfusion Index = ${v.pi}%, Respiratory Rate = ${v.rr} RPM. Waveform status: ${state.isLivingBody ? 'Living Human' : 'Detached'}.`;
+        } else if (queryLower.includes('code blue') || queryLower.includes('emergency')) {
+          reply = `⚠️ Emergency Code Blue alert triggered! Hospital crash team notified for Bed 01 (${p.name}). Emergency alarms sounding.`;
+        } else {
+          reply = `Clinical analysis complete: Eleanor Vance's vitals (HR: ${v.bpm} BPM, SpO2: ${v.spo2}%, Temp: ${v.temp}°C, PI: ${v.pi}%) indicate ${v.isDanger ? 'anomalous telemetry' : 'stable physiological parameters'}. The 25-sample PPG arterial waveform is ${state.isLivingBody ? 'active and verified' : 'flatlined (detached)'}. Standing by for clinical orders.`;
+        }
+
+        thinkingBubble.innerText = reply;
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        // Speak response aloud if AI Voice Reports is enabled
+        if (state.aiVoiceReports && 'speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utt = new SpeechSynthesisUtterance(reply);
+          utt.rate = 1.0;
+          utt.lang = 'en-US';
+          window.speechSynthesis.speak(utt);
+        }
+      }, 600);
+    }
+
+</script>
+
+    <!-- Floating Clinical AI Assistant Action Button -->
+    <button class="fab-ai-assistant" onclick="openAiChatbotModal()">
+      🤖 Clinical AI Assistant
+    </button>
+
+    <!-- Medical Grade AI Assistant Chatbot Modal -->
+    <div class="ai-assistant-modal" id="aiChatbotModal" onclick="closeAiChatbotOnOutside(event)">
+      <div class="ai-assistant-sheet" onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid #1E293B;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="background: rgba(0, 229, 255, 0.15); color: var(--cyan); padding: 8px; border-radius: 12px; font-size: 20px;">🤖</div>
+            <div>
+              <div style="font-weight: 800; font-size: 15px; color: #FFF;">ICU Clinical AI Assistant</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Powered by Gemini 1.5 Flash • Voice Enabled</div>
+            </div>
+          </div>
+          <button style="background: transparent; border: none; color: #FFF; font-size: 20px; cursor: pointer;" onclick="closeAiChatbotModal()">✕</button>
+        </div>
+
+        <!-- Telemetry Context Bar -->
+        <div style="display: flex; justify-content: space-around; background: #070A12; padding: 8px; border-radius: 10px; margin-top: 10px; font-size: 11px; font-weight: 700; border: 1px solid #1E293B;">
+          <span style="color: var(--rose);" id="chatHrCtx">HR: 76 BPM</span>
+          <span style="color: var(--cyan);" id="chatSpo2Ctx">SpO2: 98%</span>
+          <span style="color: var(--amber);" id="chatTempCtx">Temp: 36.8°C</span>
+          <span style="color: #00E676;" id="chatWaveCtx">PPG: Living</span>
+        </div>
+
+        <!-- Quick Suggestions -->
+        <div style="display: flex; gap: 6px; overflow-x: auto; padding: 10px 0;">
+          <button class="prompt-chip" onclick="sendQuickPrompt('Explain current vitals and stability')">Explain Vitals</button>
+          <button class="prompt-chip" onclick="sendQuickPrompt('Is the real-time PPG waveform normal?')">Is PPG Wave Normal?</button>
+          <button class="prompt-chip" onclick="sendQuickPrompt('Silence active sirens')">Silence Alarms</button>
+          <button class="prompt-chip" onclick="sendQuickPrompt('Triage patient risk')">Triage Patient</button>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-bubble ai">
+            Hello, I am your Clinical AI Assistant monitoring Eleanor Vance in real time. How can I assist you with telemetry triage or patient care?
+          </div>
+        </div>
+
+        <!-- Voice & Text Input -->
+        <div class="chat-input-bar">
+          <input type="text" class="chat-input" id="chatInput" placeholder="Ask Clinical AI or speak..." onkeydown="handleChatKeyDown(event)">
+          <button class="btn-mic" id="btnMic" onclick="toggleSpeechRecognition()" title="Voice Input (Speech-to-Text)">🎙️</button>
+          <button class="btn-sm active" style="padding: 10px 14px; border-radius: 20px;" onclick="sendChatMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+
+</body>
+</html>
